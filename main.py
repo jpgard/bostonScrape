@@ -13,7 +13,7 @@ import funcy as fy
 import requests
 
 
-HTML_DB_FILENAME = 'scraped_html.db'
+HTML_DB_FILENAME = 'scraped_html_copy.db'
 
 DATASET = dataset.connect('sqlite:///' + HTML_DB_FILENAME)
 TABLE = DATASET['raw_html']

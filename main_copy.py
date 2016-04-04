@@ -13,7 +13,7 @@ import funcy as fy
 import requests
 
 
-HTML_DB_FILENAME = 'scraped_html_main_2.db'
+HTML_DB_FILENAME = 'scrape_test.db'
 
 DATASET = dataset.connect('sqlite:///' + HTML_DB_FILENAME)
 TABLE = DATASET['raw_html']
@@ -51,13 +51,12 @@ def extract_entrants(html):
         header_strings = [td.get_text(strip=True)
                           for td in tr_header.find_all('td', recursive=False)]
         assert len(header_strings) == 9
-        #TODO: change to correct length?
         
+        #TODO: change to correct length?
         data_strings = [td.get_text(strip=True) for td in tr_data.select('td')[0].select('td')]
         assert len(data_strings) == 15
-        
-        # look at tr_header and tr_data here using ipdb;
-        #import ipdb; ipdb.set_trace()
+
+        import ipdb; ipdb.set_trace()
 
         yield {
             'bib_number': header_strings[0],
@@ -230,7 +229,7 @@ def scrape():
     for state_id in state_ids:
         for page_number, page_html in scrape_state(state_id):
             TABLE.upsert(dict(
-                state_id=1,
+                state_id=state_id,
                 page_number=page_number,
                 page_html=page_html,
             ), ['state_id', 'page_number'])
