@@ -56,7 +56,7 @@ def extract_entrants(html):
         data_strings = [td.get_text(strip=True) for td in tr_data.select('td')[0].select('td')]
         assert len(data_strings) == 15
 
-        import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
 
         yield {
             'bib_number': header_strings[0],
