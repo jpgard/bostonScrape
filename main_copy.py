@@ -52,11 +52,8 @@ def extract_entrants(html):
                           for td in tr_header.find_all('td', recursive=False)]
         assert len(header_strings) == 9
         
-        #TODO: change to correct length?
         data_strings = [td.get_text(strip=True) for td in tr_data.select('td')[0].select('td')]
         assert len(data_strings) == 15
-
-        #import ipdb; ipdb.set_trace()
 
         yield {
             'bib_number': header_strings[0],
@@ -91,7 +88,7 @@ def extract_entrants(html):
 def output_csv(output_csv):
     """Write a csv listing of all entrants."""
     entrants = fy.cat(extract_entrants(row['page_html']) for row in TABLE.all())
-
+    
     # We could technically use the first entry's keys, but I like this column order.
     keys = [
         'bib_number',
@@ -121,7 +118,9 @@ def output_csv(output_csv):
     ]
     writer = csv.DictWriter(output_csv, keys)
     writer.writeheader()
-    writer.writerows(entrants)
+    for row in entrants:
+        writer.writerow({k.encode('utf8'):v.encode('utf8') for k,v in row.items()})
+
 
     click.echo('Wrote %d entrants.' % len(entrants))
 
@@ -131,13 +130,14 @@ def output_html():
     """Write all pages in the database into HTML files."""
     mkdir_p('output')
     for row in TABLE.all():
-        filename = 'output/state_%s_page_%s.html' % (row['state_id'], row['page_number'])
+        #TODO:COUNTRY
+        filename = 'output/country_%s_state_%s_page_%s.html' % (row['country_id'], row['state_id'], row['page_number'])
         click.echo('Writing ' + filename)
         with file(filename, 'w') as f:
             f.write(row['page_html'])
 
 
-def scrape_state(state_id):
+def scrape_state(country_id=0, state_id=0):
     """
     Generator yielding pages of HTML for a particular state.
 
@@ -154,6 +154,7 @@ def scrape_state(state_id):
         'Origin': 'http://registration.baa.org',
         'Referer': 'http://registration.baa.org/2015/cf/Public/iframe_ResultsSearch.cfm?mode=results',
     }
+    #TODO: COUNTRY
     params = {
         'mode': 'results',
         'criteria': '',
@@ -163,7 +164,7 @@ def scrape_state(state_id):
         'VarLastName': '',
         'VarFirstName': '',
         'VarStateID': state_id,
-        'VarCountryOfResID': 0,
+        'VarCountryOfResID': country_id,
         'VarCountryOfCtzID': 0,
         'VarReportingSegID': 1,
         'VarAwardsDivID': 0,
@@ -195,8 +196,8 @@ def scrape_state(state_id):
     for page_number, start in enumerate(itertools.count(1, 25)):
         # Don't hammer the server. Give it a sec between requests.
         time.sleep(1.0)
-
-        click.echo('Requesting state %d - page %d' % (state_id, page_number))
+        #TODO: country
+        click.echo('Requesting country %d state %d - page %d' % (country_id, state_id, page_number))
         response = requests.post(
             'http://registration.baa.org/2015/cf/Public/iframe_ResultsSearch.cfm',
             headers=headers,
@@ -225,14 +226,25 @@ def scrape():
     """Pull down HTML from the server into dataset."""
     # Bullshit, I know right? But no, go look at the search page.
     state_ids = range(2, 78)
+    country_ids = range(0,203)
+    for country_id in country_ids:
 
-    for state_id in state_ids:
-        for page_number, page_html in scrape_state(state_id):
-            TABLE.upsert(dict(
-                state_id=state_id,
-                page_number=page_number,
-                page_html=page_html,
-            ), ['state_id', 'page_number'])
+        if country_id in (36, 193): #if US or canada, need to scrape by state, otherwise, can just scrape by country
+            for state_id in state_ids:
+                for page_number, page_html in scrape_state(country_id, state_id): #TODO: scrape_state needs country id and state id as parameters
+                    TABLE.upsert(dict(
+                        state_id=state_id,
+                        page_number=page_number,
+                        page_html=page_html,
+                    ), ['country_id', 'state_id', 'page_number'])
+        else:
+            for page_number, page_html in scrape_state(country_id, state_id=0): #TODO: scrape_state needs country id and state id as parameters
+                TABLE.upsert(dict(
+                    country_id =country_id,
+                    page_number=page_number,
+                    page_html=page_html,
+                ), ['country_id','state_id', 'page_number'])
+
 
 
 if __name__ == '__main__':
