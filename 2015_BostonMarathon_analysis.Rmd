@@ -12,6 +12,7 @@ output: html_document
 ```{r}
 library(plyr)
 library(lubridate)
+library(ggplot2)
 results = read.csv("resultsfinal.csv", stringsAsFactors=FALSE)
 
 #create divisions for age groups, based on agr goups listed at http://raceday.baa.org/statistics.html
@@ -34,6 +35,48 @@ results$X40k <- as.duration(as.difftime(tim = results$X40k, format = "%T", units
 results$pace <- as.duration(as.difftime(tim = results$pace, format = "%T", units = "secs"))
 results$official_time <- as.duration(as.difftime(tim = results$official_time, format = "%T", units = "secs"))
 
+#exclude any columns with na for any value; this removes 194 runners who didn't cross various checkpoints for any reasin (dropped out, missed checkpoint, foot RFID tag error...)
+results = na.omit(results)
 ```
 
 #Analysis: Four Guiding Questions
+
+##1. Who are the runners of the Boston Marathon? 
+####Where do most runners come from, what are their ages, what genders are they?
+
+```{r}
+countrycounts = data.frame(table(results$county))
+names(countrycounts) <- c("Country", "Entrants")
+ggplot(countrycounts, aes(x = reorder(Country, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("Country") + ggtitle("Entrants By Country") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+#TODO: print top 10 sorted
+
+#TODO: print countries with <5 entries just for fun?
+
+#TODO: filled country map
+```
+
+Individually visualized, the age distributions of female (top) and male (bottom) runners are shown below:
+```{r}
+ggplot(results, aes(x=age)) + geom_histogram(fill = "dodgerblue", colour="black") + facet_grid(gender ~ .)
+```
+
+We can also compare the age distributions of male and female runners by overlaying them:
+```{r}
+ggplot(results, aes(x=age, fill = gender)) + geom_density(alpha = 0.3)
+```
+As seen above, females have a relatively higher proportion of runners younger than approximately 45 years of age, and males have a relatively higher proportion of runners older than 45 (although, in general, the distributions are wuite similar).
+
+##2. How fast are the runners of the Boston Marathon? 
+####What are the average finishing times for men and women, and within five-year age groups (i.e., 25-30 years old)? How do these finishing times compare to the qualifying times needed to gain entry into the race?
+
+##3. How do runners run the race? 
+####Do they typically start fast, and slow down as the race progresses and they become fatigued, or do the more experienced runners that qualify for Boston pace themselves and achieve an even performance? How does this vary across age groups and genders?
+
+##4. Who doesn’t finish the race? 
+####Each year, a small number of runners (approximately 1,000) do not finish the race, which results in a result typically referred to as ‘DNF’ (Did Not Finish). What types of runners comprise this group, in terms of age, gender, and nationality?
+
+#Appendix: Extra Plots and Exploratory Analysis
+```{r}
+ggplot(results[results$age_group!="NA",], aes(x=age_group, y=pace/60)) + geom_violin()
+```
