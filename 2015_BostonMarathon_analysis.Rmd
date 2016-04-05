@@ -1,0 +1,39 @@
+---
+title: "2015 Boston Marathon Results Analysis"
+author: "Joshua Gardner -  jpgard.com"
+date: "April 5, 2016"
+output: html_document
+---
+
+#Background
+
+#Data Preprocessing
+
+```{r}
+library(plyr)
+library(lubridate)
+results = read.csv("resultsfinal.csv", stringsAsFactors=FALSE)
+
+#create divisions for age groups, based on agr goups listed at http://raceday.baa.org/statistics.html
+results$age_group = cut(results$age, breaks = c(0, 40, 45, 50, 55, 60, 65, 70, 75, 80), labels = c("under_40", "40-44", "45-49", "50-54", "60-64", "65-69", "70-74", "75-79", "80+"), right = FALSE, ordered_result = TRUE)
+
+#convert gender, county_origin to factor variables
+results$gender = factor(results$gender); results$gender = factor(results$gender); results$county = factor(results$county)
+
+#convert times to duration objects using as.difftime() and lubridate's as.duration()
+time_cols = c(names(results)[9:18], names(results)[20])
+results$X5k <- as.duration(as.difftime(tim = results$X5k, format = "%T", units = "secs"))
+results$X10k <- as.duration(as.difftime(tim = results$X10k, format = "%T", units = "secs"))
+results$X15k <- as.duration(as.difftime(tim = results$X15k, format = "%T", units = "secs"))
+results$X20k <- as.duration(as.difftime(tim = results$X20k, format = "%T", units = "secs"))
+results$half <- as.duration(as.difftime(tim = results$half, format = "%T", units = "secs"))
+results$X25k <- as.duration(as.difftime(tim = results$X25k, format = "%T", units = "secs"))
+results$X30k <- as.duration(as.difftime(tim = results$X30k, format = "%T", units = "secs"))
+results$X35k <- as.duration(as.difftime(tim = results$X35k, format = "%T", units = "secs"))
+results$X40k <- as.duration(as.difftime(tim = results$X40k, format = "%T", units = "secs"))
+results$pace <- as.duration(as.difftime(tim = results$pace, format = "%T", units = "secs"))
+results$official_time <- as.duration(as.difftime(tim = results$official_time, format = "%T", units = "secs"))
+
+```
+
+#Analysis: Four Guiding Questions
