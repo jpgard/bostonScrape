@@ -22,18 +22,30 @@ results$age_group = cut(results$age, breaks = c(0, 40, 45, 50, 55, 60, 65, 70, 7
 results$gender = factor(results$gender); results$gender = factor(results$gender); results$county = factor(results$county)
 
 #convert times to duration objects using as.difftime() and lubridate's as.duration()
-time_cols = c(names(results)[9:18], names(results)[20])
-results$X5k <- as.duration(as.difftime(tim = results$X5k, format = "%T", units = "secs"))
-results$X10k <- as.duration(as.difftime(tim = results$X10k, format = "%T", units = "secs"))
-results$X15k <- as.duration(as.difftime(tim = results$X15k, format = "%T", units = "secs"))
-results$X20k <- as.duration(as.difftime(tim = results$X20k, format = "%T", units = "secs"))
-results$half <- as.duration(as.difftime(tim = results$half, format = "%T", units = "secs"))
-results$X25k <- as.duration(as.difftime(tim = results$X25k, format = "%T", units = "secs"))
-results$X30k <- as.duration(as.difftime(tim = results$X30k, format = "%T", units = "secs"))
-results$X35k <- as.duration(as.difftime(tim = results$X35k, format = "%T", units = "secs"))
-results$X40k <- as.duration(as.difftime(tim = results$X40k, format = "%T", units = "secs"))
-results$pace <- as.duration(as.difftime(tim = results$pace, format = "%T", units = "secs"))
-results$official_time <- as.duration(as.difftime(tim = results$official_time, format = "%T", units = "secs"))
+
+#results$X5k <- as.duration(as.difftime(tim = results$X5k, format = "%T", units = "secs"))
+#results$X10k <- as.duration(as.difftime(tim = results$X10k, format = "%T", units = "secs"))
+#results$X15k <- as.duration(as.difftime(tim = results$X15k, format = "%T", units = "secs"))
+#results$X20k <- as.duration(as.difftime(tim = results$X20k, format = "%T", units = "secs"))
+#results$half <- as.duration(as.difftime(tim = results$half, format = "%T", units = "secs"))
+#results$X25k <- as.duration(as.difftime(tim = results$X25k, format = "%T", units = "secs"))
+#results$X30k <- as.duration(as.difftime(tim = results$X30k, format = "%T", units = "secs"))
+#results$X35k <- as.duration(as.difftime(tim = results$X35k, format = "%T", units = "secs"))
+#results$X40k <- as.duration(as.difftime(tim = results$X40k, format = "%T", units = "secs"))
+#results$pace <- as.duration(as.difftime(tim = results$pace, format = "%T", units = "secs"))
+#results$official_time <- as.duration(as.difftime(tim = results$official_time, format = "%T", units = "secs"))
+
+results$X5k <- as.POSIXlt(results$X5k, format = "%T")
+results$X10k <- as.POSIXlt(results$X10k, format = "%T")
+results$X15k <- as.POSIXlt(results$X15k, format = "%T")
+results$X20k <- as.POSIXlt(results$X20k, format = "%T")
+results$half <- as.POSIXlt(results$half, format = "%T")
+results$X25k <- as.POSIXlt(results$X25k, format = "%T")
+results$X30k <- as.POSIXlt(results$X30k, format = "%T")
+results$X35k <- as.POSIXlt(results$X35k, format = "%T")
+results$X40k <- as.POSIXlt(results$X40k, format = "%T")
+results$pace <- as.POSIXlt(results$pace, format = "%T")
+results$official_time <- as.POSIXlt(results$official_time, format = "%T")
 
 #exclude any columns with na for any value; this removes 194 runners who didn't cross various checkpoints for any reasin (dropped out, missed checkpoint, foot RFID tag error...)
 results = na.omit(results)
@@ -58,25 +70,51 @@ ggplot(countrycounts, aes(x = reorder(Country, -Entrants), y = Entrants)) + geom
 
 Individually visualized, the age distributions of female (top) and male (bottom) runners are shown below:
 ```{r}
-ggplot(results, aes(x=age)) + geom_histogram(fill = "dodgerblue", colour="black") + facet_grid(gender ~ .)
+ggplot(results, aes(x=age)) + geom_histogram(fill = "dodgerblue", colour="black", alpha = 0.3) + facet_grid(gender ~ .)
 ```
 
-We can also compare the age distributions of male and female runners by overlaying them:
+We can also directly compare the age distributions of male and female runners by overlaying them:
 ```{r}
 ggplot(results, aes(x=age, fill = gender)) + geom_density(alpha = 0.3)
 ```
 As seen above, females have a relatively higher proportion of runners younger than approximately 45 years of age, and males have a relatively higher proportion of runners older than 45 (although, in general, the distributions are wuite similar).
 
 ##2. How fast are the runners of the Boston Marathon? 
-####What are the average finishing times for men and women, and within five-year age groups (i.e., 25-30 years old)? How do these finishing times compare to the qualifying times needed to gain entry into the race?
+####What are the average finishing times for men and women, and within age groups? How do these finishing times compare to the qualifying times needed to gain entry into the race?
+
+```{r}
+ggplot(results, aes(x=age_group, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.3) + ggtitle("Official Finishing Times By Age Group")
+ggplot(results, aes(x=age_group, y=official_time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.3) + ggtitle("Official Finishing Times By Age Group")
+
+ggplot(results, aes(x=gender, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.3) + ggtitle("Official Finishing Times By Age Group")
+ggplot(results, aes(x=gender, y=official_time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.3) + ggtitle("Official Finishing Times By Age Group")
+
+#TODO: create faceted plot for each age group; in each facet, plot a horizontal line with the qualifying time for that group.
+
+#TODO: split violin plots for male/female, within each age group --  see http://stackoverflow.com/questions/35717353/split-violin-plot-with-ggplot2
+```
+
 
 ##3. How do runners run the race? 
 ####Do they typically start fast, and slow down as the race progresses and they become fatigued, or do the more experienced runners that qualify for Boston pace themselves and achieve an even performance? How does this vary across age groups and genders?
+
+```{r}
+#TODO: compute times over intervals...
+#results$final_5k = results$X40k - results$X35k
+#ggplot(results, aes(x=gender, y=results$X40k - results$X35k)) + geom_violin(fill = "dodgerblue", alpha = 0.3)
+```
 
 ##4. Who doesn’t finish the race? 
 ####Each year, a small number of runners (approximately 1,000) do not finish the race, which results in a result typically referred to as ‘DNF’ (Did Not Finish). What types of runners comprise this group, in terms of age, gender, and nationality?
 
 #Appendix: Extra Plots and Exploratory Analysis
+
+#### How is pace related to age group?
 ```{r}
-ggplot(results[results$age_group!="NA",], aes(x=age_group, y=pace/60)) + geom_violin()
+ggplot(results[results$age_group!="NA",], aes(x=age_group, y=pace)) + geom_violin()
+```
+
+####How is bib number (= rank based on qualifying time) related to overall performance? Do runners with faster qualifying times place higher?
+```{r}
+ggplot(results, aes(x = bib_number, y = overall_place)) + geom_point()
 ```
