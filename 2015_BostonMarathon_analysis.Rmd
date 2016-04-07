@@ -16,36 +16,43 @@ library(ggplot2)
 results = read.csv("resultsfinal.csv", stringsAsFactors=FALSE)
 
 #create divisions for age groups, based on agr goups listed at http://raceday.baa.org/statistics.html
-results$age_group = cut(results$age, breaks = c(0, 40, 45, 50, 55, 60, 65, 70, 75, 80), labels = c("under_40", "40-44", "45-49", "50-54", "60-64", "65-69", "70-74", "75-79", "80+"), right = FALSE, ordered_result = TRUE)
+results$age_group = cut(results$age, breaks = c(0, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80), labels = c("18-34", "35-39", "40-44", "45-49", "50-54", "60-64", "65-69", "70-74", "75-79", "80+"), right = FALSE, ordered_result = TRUE)
+
+#import qualifying times and add to data
+qualTimes = read.table("qualifyingTimes.txt", sep = '\t', colClasses = c("factor", "factor", "character"))
+names(qualTimes) = c("age_group", "gender", "qualifying_time")
 
 #convert gender, county_origin to factor variables
 results$gender = factor(results$gender); results$gender = factor(results$gender); results$county = factor(results$county)
 
+results = merge(results, qualTimes)
+
 #convert times to duration objects using as.difftime() and lubridate's as.duration()
 
-#results$X5k <- as.duration(as.difftime(tim = results$X5k, format = "%T", units = "secs"))
-#results$X10k <- as.duration(as.difftime(tim = results$X10k, format = "%T", units = "secs"))
-#results$X15k <- as.duration(as.difftime(tim = results$X15k, format = "%T", units = "secs"))
-#results$X20k <- as.duration(as.difftime(tim = results$X20k, format = "%T", units = "secs"))
-#results$half <- as.duration(as.difftime(tim = results$half, format = "%T", units = "secs"))
-#results$X25k <- as.duration(as.difftime(tim = results$X25k, format = "%T", units = "secs"))
-#results$X30k <- as.duration(as.difftime(tim = results$X30k, format = "%T", units = "secs"))
-#results$X35k <- as.duration(as.difftime(tim = results$X35k, format = "%T", units = "secs"))
-#results$X40k <- as.duration(as.difftime(tim = results$X40k, format = "%T", units = "secs"))
-#results$pace <- as.duration(as.difftime(tim = results$pace, format = "%T", units = "secs"))
-#results$official_time <- as.duration(as.difftime(tim = results$official_time, format = "%T", units = "secs"))
+results$X5k <- as.duration(as.difftime(tim = results$X5k, format = "%T", units = "secs"))
+results$X10k <- as.duration(as.difftime(tim = results$X10k, format = "%T", units = "secs"))
+results$X15k <- as.duration(as.difftime(tim = results$X15k, format = "%T", units = "secs"))
+results$X20k <- as.duration(as.difftime(tim = results$X20k, format = "%T", units = "secs"))
+results$half <- as.duration(as.difftime(tim = results$half, format = "%T", units = "secs"))
+results$X25k <- as.duration(as.difftime(tim = results$X25k, format = "%T", units = "secs"))
+results$X30k <- as.duration(as.difftime(tim = results$X30k, format = "%T", units = "secs"))
+results$X35k <- as.duration(as.difftime(tim = results$X35k, format = "%T", units = "secs"))
+results$X40k <- as.duration(as.difftime(tim = results$X40k, format = "%T", units = "secs"))
+results$pace <- as.duration(as.difftime(tim = results$pace, format = "%T", units = "secs"))
+results$official_time <- as.duration(as.difftime(tim = results$official_time, format = "%T", units = "secs"))
+results$qualifying_time <- as.duration(as.difftime(tim = results$qualifying_time, format = "%T", units = "secs"))
 
-results$X5k <- as.POSIXlt(results$X5k, format = "%T")
-results$X10k <- as.POSIXlt(results$X10k, format = "%T")
-results$X15k <- as.POSIXlt(results$X15k, format = "%T")
-results$X20k <- as.POSIXlt(results$X20k, format = "%T")
-results$half <- as.POSIXlt(results$half, format = "%T")
-results$X25k <- as.POSIXlt(results$X25k, format = "%T")
-results$X30k <- as.POSIXlt(results$X30k, format = "%T")
-results$X35k <- as.POSIXlt(results$X35k, format = "%T")
-results$X40k <- as.POSIXlt(results$X40k, format = "%T")
-results$pace <- as.POSIXlt(results$pace, format = "%T")
-results$official_time <- as.POSIXlt(results$official_time, format = "%T")
+#results$X5k <- as.POSIXlt(results$X5k, format = "%T")
+#results$X10k <- as.POSIXlt(results$X10k, format = "%T")
+#results$X15k <- as.POSIXlt(results$X15k, format = "%T")
+#results$X20k <- as.POSIXlt(results$X20k, format = "%T")
+#results$half <- as.POSIXlt(results$half, format = "%T")
+#results$X25k <- as.POSIXlt(results$X25k, format = "%T")
+#results$X30k <- as.POSIXlt(results$X30k, format = "%T")
+#results$X35k <- as.POSIXlt(results$X35k, format = "%T")
+#results$X40k <- as.POSIXlt(results$X40k, format = "%T")
+#results$pace <- as.POSIXlt(results$pace, format = "%T")
+#results$official_time <- as.POSIXlt(results$official_time, format = "%T")
 
 #exclude any columns with na for any value; this removes 194 runners who didn't cross various checkpoints for any reasin (dropped out, missed checkpoint, foot RFID tag error...)
 results = na.omit(results)
@@ -83,6 +90,7 @@ As seen above, females have a relatively higher proportion of runners younger th
 ####What are the average finishing times for men and women, and within age groups? How do these finishing times compare to the qualifying times needed to gain entry into the race?
 
 ```{r}
+
 ggplot(results, aes(x=age_group, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.3) + ggtitle("Official Finishing Times By Age Group")
 ggplot(results, aes(x=age_group, y=official_time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.3) + ggtitle("Official Finishing Times By Age Group")
 
@@ -90,6 +98,11 @@ ggplot(results, aes(x=gender, y=official_time)) + geom_violin(fill = "dodgerblue
 ggplot(results, aes(x=gender, y=official_time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.3) + ggtitle("Official Finishing Times By Age Group")
 
 #TODO: create faceted plot for each age group; in each facet, plot a horizontal line with the qualifying time for that group.
+ggplot(subset(results, gender == "M"), aes(x=gender, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.3) + ggtitle("Official Finishing Times By Age Group (Men)\n Relative to Qualifying Standard")  + geom_hline(aes(yintercept=qualifying_time), size=1, colour = "gold") + facet_grid(. ~ age_group) + theme(axis.text.x = element_blank(), axis.title.x=element_blank()) + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00"))
+
+
+ggplot(subset(results, gender == "F"), aes(x=gender, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.3) + ggtitle("Official Finishing Times By Age Group (Women)\n Relative to Qualifying Standard")  + geom_hline(aes(yintercept=qualifying_time), size=1, colour = "gold") + facet_grid(. ~ age_group) + theme(axis.text.x = element_blank(), axis.title.x=element_blank()) + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00"))
+
 
 #TODO: split violin plots for male/female, within each age group --  see http://stackoverflow.com/questions/35717353/split-violin-plot-with-ggplot2
 ```
@@ -99,9 +112,12 @@ ggplot(results, aes(x=gender, y=official_time)) + geom_boxplot(fill = "dodgerblu
 ####Do they typically start fast, and slow down as the race progresses and they become fatigued, or do the more experienced runners that qualify for Boston pace themselves and achieve an even performance? How does this vary across age groups and genders?
 
 ```{r}
-#TODO: compute times over intervals...
-#results$final_5k = results$X40k - results$X35k
-#ggplot(results, aes(x=gender, y=results$X40k - results$X35k)) + geom_violin(fill = "dodgerblue", alpha = 0.3)
+#TODO: compute times over intervals similar to...
+results$final_5k = results$X40k - results$X35k
+
+#plot difference between first 5k and last 5k
+ggplot(results, aes(x=gender, y=results$X40k - results$X35k-results$X5k)) + geom_violin(fill = "dodgerblue", alpha = 0.3)
+
 ```
 
 ##4. Who doesn’t finish the race? 
@@ -116,6 +132,8 @@ ggplot(results[results$age_group!="NA",], aes(x=age_group, y=pace)) + geom_violi
 
 ####How is bib number (= rank based on qualifying time) related to overall performance? Do runners with faster qualifying times place higher?
 ```{r}
-ggplot(results, aes(x = bib_number, y = overall_place)) + geom_point()
-ggplot(results, aes(x = bib_number, y = overall_place)) + stat_binhex()
+#note: these are interesting graphs but need a little more wrangling to come out right!
+
+#ggplot(results, aes(x = bib_number, y = overall_place)) + geom_point()
+#ggplot(results, aes(x = bib_number, y = overall_place)) + stat_binhex()
 ```
