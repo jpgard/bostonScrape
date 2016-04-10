@@ -12,15 +12,52 @@ The Boston Marathon is one of the world's oldest and most prestigious marathons.
 This project was motivated by several factors. Despite how famous and historic the race and its course are, very little is publicly shared about how participants actually perform in the marathon. The Boston Marathon makes searchable results available on their website, but reports very little about how runners actually perform on the course. Given that this is one of the world's most prestigious marathons, and given the unique population of runners that participate in this race, it seemed like an especially interesting and useful dataset to obtain and explore. Additionally, having participated in the boston marathon five times as a runner myself, I was particularly interested in learning more about the race's results. 
 
 The four specific questions I intended to explore for this dataset originally were:
-*Who are the runners of the Boston Marathon? Where do most runners come from, what are their ages, what genders are they?
+
+* Who are the runners of the Boston Marathon? Where do most runners come from, what are their ages, what genders are they?
 *How fast are the runners of the Boston Marathon? What are the average finishing times for men and women, and within five-year age groups (i.e., 25-30 years old)? How do these finishing times compare to the qualifying times needed to gain entry into the race?
-*How do runners run the race? Do they typically start fast, and slow down as the race progresses and they become fatigued, or do the more experienced runners that qualify for Boston pace themselves and achieve an even performance? How does this vary across age groups and genders?
-*Who doesn’t finish the race? Each year, a small number of runners (approximately 1,000) do not finish the race, which results in a result typically referred to as ‘DNF’ (Did Not Finish). What types of runners comprise this group, in terms of age, gender, and nationality?
+* How do runners run the race? Do they typically start fast, and slow down as the race progresses and they become fatigued, or do the more experienced runners that qualify for Boston pace themselves and achieve an even performance? How does this vary across age groups and genders?
+* Who doesn’t finish the race? Each year, a small number of runners (approximately 1,000) do not finish the race, which results in a result typically referred to as ‘DNF’ (Did Not Finish). What types of runners comprise this group, in terms of age, gender, and nationality?
 
 The final question, however, is not answerable with the dataset I obtained: the BAA (Boston Athletic Association, the race's organizing body) does not publish results for racers who do not post a finishing time. So, I replaced the final question with:
 
-*How do elite athletes perform in the race?
+* How do elite athletes perform in the race?
 
+#Data Source
+
+The data obtained in this project are not publicly available, as a whole, which was a main source of motivation for this project--searchable Boston Marathon results are available at BAA.org, but the results are limited to a maximum of 25 pages of results, and there are no visualizations or aggregate statistics available for either demographic or performance-related aspects of the race participants. The data were obtained by creating a web scraping program in Python that was developed with a friend (the version of this scraper used to extract the data for this project is attached; the most recent version of the scraper is maintained at https://github.com/jpgard). The program systematically searches for groups of runners by country and state, extracts the page html into a database, and then parses the html using BeautifulSoup to create a csv file of the data fields scraped from the site.
+
+The original data includes the following fields:
+
+bib_number: The athlete's number. It is important to note that bib numbers are actually more than just nominal vairables and contain important data: bib bumbers are assigned in ascending order based on athletes' qualifying times (every athlete is required to submit a verifiable qualifying time from a previous marathon that meets or exceeds a specific standard for the athlete's gender and age group). These can be thought of as pre-race rankings.  
+name, age, gender, city, state, country, origin: These are all various demographic variables for the runners. Of particular interest here are age (which is used to generate age groupings), gender, and country (the runner's country of citizenship).
+5k, 10k, 15k, 20k, half, 25k, 30k, 35k, 40k, official_time: The times in which the runner completed various distance segments of the course. These are used to explore particularly interesting metrics related to runner performance.
+pace: The runner's average pace, in minutes per mile, across the 26.2 mile race (this is obtained by dividing the runner's official time by 26.2).
+projected_time: This variable is nulled for every runner. It appears that this is populated **during** the race for spectators, and is a projection based on runners' current pace on race day, but that the projected time is removed once runners finish the race.	
+overall.place, gender.place, division.place: The runner's place, based on finishing time, overall, in their gender, and in their age division.
+
+In all, this dataset contained 22,328 observations of 26 variables, after removing rows without data. This dataset should represent all runners who received official finish times for the 2015 Boston Marathon, but excludes runners who did not start or finish the race, dropped out, missed any checkpoint along the way, or had their results excluded from the online database.
+
+#Methods
+
+(a) how did you manipulate the data to prepare it for analysis?  
+
+Extensive manipulation was performed on the data even in order to obtain it, and a great deal of further manipulation was required to prepare it for analysis and visualization. As mentioned above, the data was obtained from the BAA.org searchable results page using a web scraper, attached to this submission and also poasted at https://github.com/jpgard. This scraper systematically submitted searches by using http 'post' requests identical to those generated from an in-browser search. The scraper then stored the raw html in a database for later extraction, so that html could be stored and manipulated without repeatedly querying the results page. This html was parsed, using BeautifulSoup, and a csv with all of the available data fields from the search results was output by the scraper. 
+
+The csv file from the web scraper was then imported into R, and, in the steps shown in the code below, several manipulations were performed. The primary manipulations were:
+
+=**Generating age groups**: Boston Marathon participants span a wide range of ages, and there is a great deal of variation in performance across age groups. For most metrics, comparisons across age groups introduced excessive noise into comparisons and were not meaningful. Additionally, many race statistics are typically reported by age group. For these reasons, I manually generated age groups for runners that matched the age groups used by the BAA for qualifying times (information on those groups is available at http://www.baa.org/Races/Boston-Marathon/Participant-Information/Qualifying.aspx). Age groups were generated using the **cut()** function in R.
+
+-**Converting times to dateTime and duration objects:** Dealing with times is difficult, but dealing with the times as strings would be nearly impossible. I experimented with several different packages and data types for handling the times, but eventually settled on converting the times to *duration* objects using the **as.duration()** function. I elected not to use POSIX objects because these inherently introduce a date into the object (the POSIX class is typically used for times of day and dates), and the race times being used here did not contain any date elements. Using the *duration* class seemed more semantically accurate than simply encoding the times as numeric values, for instance, and also provided other useful fonctionality, like the ability to easily change between units of time (seconds, minutes, hours).
+
+-**Generating times for 5k race segments:**
+
+
+(b) How did you handle missing, incomplete, or noisy data?
+
+
+
+(c) How did you perform data analysis in code, i.e. Briefly describe the workflow of your source code
+(d) What challenges did you encounter and how did you solve them?
 
 #Data Preprocessing
 
@@ -58,19 +95,6 @@ results$pace <- as.duration(as.difftime(tim = results$pace, format = "%T", units
 results$official_time <- as.duration(as.difftime(tim = results$official_time, format = "%T", units = "secs"))
 results$qualifying_time <- as.duration(as.difftime(tim = results$qualifying_time, format = "%T", units = "secs"))
 
-#results$X5k <- as.POSIXlt(results$X5k, format = "%T")
-#results$X10k <- as.POSIXlt(results$X10k, format = "%T")
-#results$X15k <- as.POSIXlt(results$X15k, format = "%T")
-#results$X20k <- as.POSIXlt(results$X20k, format = "%T")
-#results$half <- as.POSIXlt(results$half, format = "%T")
-#results$X25k <- as.POSIXlt(results$X25k, format = "%T")
-#results$X30k <- as.POSIXlt(results$X30k, format = "%T")
-#results$X35k <- as.POSIXlt(results$X35k, format = "%T")
-#results$X40k <- as.POSIXlt(results$X40k, format = "%T")
-#results$pace <- as.POSIXlt(results$pace, format = "%T")
-#results$official_time <- as.POSIXlt(results$official_time, format = "%T")
-
-#exclude any columns with na for any value; this removes 194 runners who didn't cross various checkpoints for any reasin (dropped out, missed checkpoint, foot RFID tag error...)
 results = na.omit(results)
 ```
 
