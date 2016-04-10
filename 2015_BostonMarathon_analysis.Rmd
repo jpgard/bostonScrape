@@ -5,7 +5,13 @@ date: "April 5, 2016"
 output: html_document
 ---
 
-#Background
+#Background and Motivation
+
+The Boston Marathon is one of the world's oldest and most prestigious marathons. Begun in 1897, the Boston Marathon is the world's oldest annual marathon and ranks as one of the world's best-known racing events. It is one of six World Marathon Majors, and is one of four major events held in the United States through the years of both World Wars (Kentucky Derby, Rose Parade, and Westminster Kennel Club Dog Show are the others). The Boston Marathon attracts olympians and world record-holders each year, and as many as 50,000 amateur and professional runners gather to join an elite and competitive field of runners. The Boston Marathon is particularly unique in that registration is not open to all participants--runners must qualify by running a specified marathon time for their age group and gender--making the race especially prestigious and a career-long goal for many runners. Held on Patriot's Day each year, the race attracts well over 500,000 spectators along its historic and famous 26.2 mile course from Hopkinton into downtown Boston.
+
+This project was motivated by several factors. Despite how famous and historic the race and its course are, very little is publicly shared about how participants actually perform in the marathon. The Boston Marathon makes searchable results available on their website, but reports very little about how runners actually perform on the course. Given that this is one of the world's most prestigious marathons, and given the unique population of runners that participate in this race, it seemed like an especially interesting and useful dataset to obtain and explore. Additionally, having participated in the boston marathon five times as a runner myself, I was particularly interested in learning more
+
+
 
 #Data Preprocessing
 
@@ -124,18 +130,31 @@ half_times$time = as.numeric(half_times$time)
 
 ggplot(half_times, aes(x = half, y = time)) + geom_violin(fill = "dodgerblue", alpha = 0.5)
 
-ggplot(half_times, aes(x = half, y = time)) + geom_violin(aes(fill = half, colour = half), alpha = 0.5) + facet_grid(gender ~ age_group)
+#Main plot--TODO: adjust color
+ggplot(half_times, aes(x = half, y = time)) + geom_violin(aes(fill = half, colour = half), alpha = 0.5) + facet_grid(gender ~ age_group) + stat_summary(fun.y=median, geom="point", fill="white", shape=21, size=2.5)
 
 ggplot(half_times, aes(x = half, y = time)) + geom_jitter(aes(colour = gender, alpha = 0.5))
 
-#create variables for each 5k segment
-
-#TODO: compute times over intervals similar to...
-results$final_5k = results$X40k - results$X35k
 
 #plot difference between first 5k and last 5k
-ggplot(results, aes(x=gender, y=results$X40k - results$X35k-results$X5k)) + geom_violin(fill = "dodgerblue", alpha = 0.3)
+ggplot(results, aes(x=age_group, y=results$X40k - results$X35k-results$X5k)) + geom_violin(fill = "dodgerblue", alpha = 0.3) + stat_summary(fun.y=median, geom="point", fill="gold", shape=21, size=2.5)
 
+ggplot(results, aes(x=age_group, y=results$X40k - results$X35k-results$X5k)) + geom_jitter(colour = "dodgerblue", alpha = 0.3) + scale_y_continuous(limits = c(-1800, 1800), breaks = c(-1800, -1200, -600, 0, 600, 1200, 1800), labels = c("-30:00", "-20:00", "-10:00", "00:00", "+10:00", "+20:00", "+30:00")) + ylab("Difference in minutes") + ggtitle("Difference between first and final 5k times\nby age group")
+```
+
+```{r}
+#Data processing for pace calculation along various 5k segments
+library(dplyr)
+segment_5k_times <- results %>%
+    mutate(segment_5k = X5k, segment_10k = X10k - X5k, segment_15k = X15k-X10k, segment_20k = X20k-X15k, segment_25k = X25k-X20k, segment_30k = X30k-X25k, segment_35k=X35k-X30k, segment_40k = X40k-X35k) %>%
+    gather(km_segment, time, segment_5k:segment_40k) %>%
+    mutate(km_segment = as.factor(as.numeric(gsub("k", "", gsub("segment_", "", km_segment))))) %>%
+    subset(select = -c(name, age, bib_number, city, origin, X5k:sec_half_pace))
+
+ggplot(filter(segment_5k_times, age_group <= "45-49"), aes(x = km_segment, y = time)) + geom_jitter(colour = "dodgerblue", alpha = 0.3)+ geom_boxplot(fill = "white", width = 0.2, outlier.shape = NA) + facet_grid(age_group ~ gender) + xlab("5k segment") + ylab("Segment Time") + scale_y_continuous(limits = c(900, 2700), breaks = c(1200,  1800,  2400), labels = c("20:00", "30:00", "40:00")) + ggtitle("Performance over 5k race segments by gender and age group\n2015 Boston Marathon")
+
+ggplot(filter(segment_5k_times, age_group > "45-49"), aes(x = km_segment, y = time)) + geom_jitter(colour = "dodgerblue", alpha = 0.3)+ geom_boxplot(fill = "white", width = 0.2, outlier.shape = NA) + facet_grid(age_group ~ gender) + xlab("5k segment") + ylab("Segment Time") + scale_y_continuous(limits = c(900, 2700), breaks = c(1200,  1800,  2400), labels = c("20:00", "30:00", "40:00")) + ggtitle("Performance over 5k race segments by gender and age group\n2015 Boston Marathon")
+    
 ```
 
 ##4. Who doesn’t finish the race? 
