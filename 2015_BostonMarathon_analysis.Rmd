@@ -204,6 +204,8 @@ ggplot(results[results$age_group!="NA",], aes(x=age_group, y=pace)) + geom_violi
 ####How is bib number (= rank based on qualifying time) related to overall performance? Do runners with faster qualifying times place higher?
 ```{r}
 #note: these are interesting graphs but need a little more wrangling to come out right!
+plot(as.numeric(results$bib_number), as.numeric(results$overall_place), col = "dodgerblue", main = "Bib Number vs. Finish Place")
+abline(0, 1, col = "gold", lwd = 4)
 
 #ggplot(results, aes(x = bib_number, y = overall_place)) + geom_point()
 #ggplot(results, aes(x = bib_number, y = overall_place)) + stat_binhex()
