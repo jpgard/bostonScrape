@@ -84,6 +84,7 @@ There were several unique challenges presented by this data--this is not an exha
 
 ```{r}
 library(plyr)
+library(dplyr)
 library(lubridate)
 library(ggplot2)
 library(tidyr)
@@ -130,38 +131,45 @@ results <- results %>%
 ```{r}
 countrycounts = data.frame(table(results$county))
 names(countrycounts) <- c("Country", "Entrants")
-ggplot(countrycounts, aes(x = reorder(Country, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("Country") + ggtitle("Entrants By Country") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+countrycounts = arrange(countrycounts, desc(Entrants), Country)
 
-#TODO: print top 10 countries sorted
+ggplot(countrycounts, aes(x = reorder(Country, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("Country") + ggtitle("Official Finishers By Country\n2015 Boston Marathon") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
-#TODO: print top 10 cities sorted
+ggplot(countrycounts[1:10,], aes(x = reorder(Country, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("Country") + ggtitle("Top 10 Countries By Official Finisher Counts\n2015 Boston Marathon") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
-#TODO: print countries with <5 entries just for fun?
+ggplot(filter(countrycounts, Entrants <= 5), aes(x = reorder(Country, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("Country") + ggtitle("Countries With Five or Fewer Official Finishers") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
-#TODO: filled country map (not required)
+#top 25 cities sorted
+citycounts = data.frame(table(results$city))
+names(citycounts) <- c("City", "Entrants")
+citycounts = arrange(citycounts, desc(Entrants), City)
+
+ggplot(citycounts[1:25,], aes(x = reorder(City, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("City") + ggtitle("Top 20 Cities By Official Finisher Counts\n2015 Boston Marathon") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+#TODO: filled or labeled country map (not required)
 ```
+
 
 Individually visualized, the age distributions of female (top) and male (bottom) runners are shown below:
 ```{r}
-ggplot(results, aes(x=age)) + geom_histogram(fill = "dodgerblue", colour="black", alpha = 0.3) + facet_grid(gender ~ .)
+ggplot(results, aes(x=age)) + geom_histogram(fill = "dodgerblue", colour="black", alpha = 0.3) + facet_grid(gender ~ .) + ylab("Count") + xlab("Age") + ggtitle("Distribution of Official Finishers by Age and Gedner\n2015 Boston Marathon")
 ```
 
 We can also directly compare the age distributions of male and female runners by overlaying them:
 ```{r}
-ggplot(results, aes(x=age, fill = gender)) + geom_density(alpha = 0.3)
+ggplot(results, aes(x=age, fill = gender)) + geom_density(alpha = 0.7) + scale_fill_manual(values=c("dodgerblue", "ghostwhite"))
 ```
-As seen above, females have a relatively higher proportion of runners younger than approximately 45 years of age, and males have a relatively higher proportion of runners older than 45 (although, in general, the distributions are quite similar).
+As seen above, females have a relatively higher proportion of runners younger than approximately 45 years of age, and males have a relatively higher proportion of runners older than 45 (although, in general, the distributions are quite similar). This becomes particularly evident at the highest extremes of the age grouping, below, where we can see that there was only one female finisher in the 80+ age group.
 
 ##2. How fast are the runners of the Boston Marathon? 
 ####What are the average finishing times for men and women, and within age groups? How do these finishing times compare to the qualifying times needed to gain entry into the race?
 
 ```{r}
 
-ggplot(results, aes(x=age_group, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.3) + ggtitle("Official Finishing Times By Age Group")
-ggplot(results, aes(x=age_group, y=official_time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.3) + ggtitle("Official Finishing Times By Age Group")
+ggplot(results, aes(x=age_group, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Time Distribution By Age Group\n2015 Boston Marathon") + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00"))
+ggplot(results, aes(x=age_group, y=official_time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Time Distribution By Age Group\n2015 Boston Marathon") + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00"))
 
-ggplot(results, aes(x=gender, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.3) + ggtitle("Official Finishing Times By Age Group")
-ggplot(results, aes(x=gender, y=official_time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.3) + ggtitle("Official Finishing Times By Age Group")
+ggplot(results, aes(x=gender, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Time Distribution by Gender\n2015 Boston Marathon")
+ggplot(results, aes(x=gender, y=official_time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Time Distribution by Gender\n2015 Boston Marathon")
 
 #faceted plots with qualifying times for men, women
 ggplot(subset(results, gender == "M"), aes(x=gender, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Times By Age Group (Men)\n Relative to Qualifying Standard")  + geom_hline(aes(yintercept=qualifying_time), size=1, colour = "gold") + facet_grid(. ~ age_group) + theme(axis.text.x = element_blank(), axis.title.x=element_blank(), axis.title.y=element_blank()) + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00"))
@@ -170,7 +178,7 @@ ggplot(subset(results, gender == "M"), aes(x=gender, y=official_time)) + geom_vi
 ggplot(subset(results, gender == "F"), aes(x=gender, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Times By Age Group (Women)\n Relative to Qualifying Standard")  + geom_hline(aes(yintercept=qualifying_time), size=1, colour = "gold") + facet_grid(. ~ age_group) + theme(axis.text.x = element_blank(), axis.title.x=element_blank(), axis.title.y=element_blank()) + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00"))
 
 
-#TODO: split violin plots for male/female, within each age group --  see http://stackoverflow.com/questions/35717353/split-violin-plot-with-ggplot2
+#TODO: generate "split" violin plots for male/female, within each age group --  see http://stackoverflow.com/questions/35717353/split-violin-plot-with-ggplot2
 ```
 
 
