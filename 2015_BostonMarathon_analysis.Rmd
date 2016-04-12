@@ -101,6 +101,7 @@ names(qualTimes) = c("age_group", "gender", "qualifying_time")
 #create factor variables from various demographics
 #convert times to duration objects using as.difftime() and lubridate's as.duration()
 #merge with qualifying times data and perform transformations to create duration objects from qualifying time strings
+#create factor for elite runners
 
 results <- results %>%
     mutate(age_group = cut(results$age, breaks = c(0, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80), labels = c("18-34", "35-39", "40-44", "45-49", "50-54", "60-64", "65-69", "70-74", "75-79", "80+"), right = FALSE, ordered_result = TRUE)) %>%
@@ -118,7 +119,9 @@ results <- results %>%
            official_time = as.duration(as.difftime(tim = official_time, format = "%T", units = "secs"))) %>%
     merge(qualTimes) %>%
     mutate(qualifying_time = as.duration(as.difftime(tim = qualifying_time, format = "%T", units = "secs"))) %>%
-    na.omit()
+    na.omit() %>%
+    unique()
+
 
 
 ```
@@ -127,6 +130,16 @@ results <- results %>%
 
 ##1. Who are the runners of the Boston Marathon? 
 ####Where do most runners come from, what are their ages, what genders are they?
+
+My analysis below shows that the overwhelming majority of runners that recorded official finish times for the 2015 Boston Marathon come from within the United States, followed (distantly) by Canada, Great Britain, Mexico, Germany, Italy, Japan, Austria, Brazil, and France. In all, there are 77 countries represented in the list of finishers. There is a "long tail" of many countries with fewer entrants, and 31 countries with only five or fewer participants. Approximately 57% of finishers were male and 43% were female.
+
+The composition of the top runners is slightly different--and this composition changes as we look at progressively smaller samples of these runners (only the nationality of the top 50 runners is shown here, but as we continue to narrow the size of the "top runners" window, the size of the U.S. contingent continues to shrink, while the other countries remain relatively stable). In general, Kenya, Ethiopia, and Japan are disproportionately represented in the top overall finishers relative to their proportion of all finishers.
+
+In terms of age, the median age is between 40 and 50 for all runners, with the female runners having a slightly younger overall age distribution than male runners. Females have a relatively higher proportion of runners younger than approximately 45 years of age, and males have a relatively higher proportion of runners older than 45 (although, in general, the distributions are quite similar). This becomes particularly evident at the highest extremes of the age grouping, below, where we can see that there was only one female finisher in the 80+ age group.
+
+The age distribution of the top 100 overall finishers is much younger, with a median age of 29.5, as shown in the final plot. There were only 9 finishers in the top 100 over the age of 35 (but, it is worth noting, the race was won in 2014 by Meb Kheflezghi, who was nearly 37 years old at the time of his victory).
+
+
 
 ```{r}
 countrycounts = data.frame(table(results$county))
@@ -139,26 +152,37 @@ ggplot(countrycounts[1:10,], aes(x = reorder(Country, -Entrants), y = Entrants))
 
 ggplot(filter(countrycounts, Entrants <= 5), aes(x = reorder(Country, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("Country") + ggtitle("Countries With Five or Fewer Official Finishers") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
+ggplot(results, aes(x = gender)) + geom_bar() + ggtitle("Official Finishers By Gender\n2015 Boston Marathon")
+
 #top 25 cities sorted
 citycounts = data.frame(table(results$city))
 names(citycounts) <- c("City", "Entrants")
 citycounts = arrange(citycounts, desc(Entrants), City)
 
 ggplot(citycounts[1:25,], aes(x = reorder(City, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("City") + ggtitle("Top 20 Cities By Official Finisher Counts\n2015 Boston Marathon") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
 #TODO: filled or labeled country map (not required)
+
+top_window_size = 50
+top = data.frame(table(arrange(results, official_time)[1:top_window_size,"county"]))
+names(top) <- c("Country", "Entrants")
+
+ggplot(filter(top, Entrants != 0), aes(x = reorder(Country, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("Country") + ggtitle("Top 50 Official Finishers By Country\n2015 Boston Marathon") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 
-Individually visualized, the age distributions of female (top) and male (bottom) runners are shown below:
+
 ```{r}
 ggplot(results, aes(x=age)) + geom_histogram(fill = "dodgerblue", colour="black", alpha = 0.3) + facet_grid(gender ~ .) + ylab("Count") + xlab("Age") + ggtitle("Distribution of Official Finishers by Age and Gedner\n2015 Boston Marathon")
 ```
 
-We can also directly compare the age distributions of male and female runners by overlaying them:
+
 ```{r}
-ggplot(results, aes(x=age, fill = gender)) + geom_density(alpha = 0.7) + scale_fill_manual(values=c("dodgerblue", "ghostwhite"))
+ggplot(results, aes(x=age, fill = gender)) + geom_density(alpha = 0.7) + scale_fill_manual(values=c("dodgerblue", "ghostwhite")) + ggtitle("Age Distributions of Male and Female Finishers\n2015 Boston Marathon")
+
+top100 = top_n(results, 100, -official_time)
+ggplot(top100, aes(x=age)) + geom_histogram(fill = "dodgerblue", colour="black", alpha = 0.3) + ylab("Count") + xlab("Age") + ggtitle("Age Distribution of Top 100 Official Finishers\n2015 Boston Marathon")
 ```
-As seen above, females have a relatively higher proportion of runners younger than approximately 45 years of age, and males have a relatively higher proportion of runners older than 45 (although, in general, the distributions are quite similar). This becomes particularly evident at the highest extremes of the age grouping, below, where we can see that there was only one female finisher in the 80+ age group.
 
 ##2. How fast are the runners of the Boston Marathon? 
 ####What are the average finishing times for men and women, and within age groups? How do these finishing times compare to the qualifying times needed to gain entry into the race?
