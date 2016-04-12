@@ -132,11 +132,13 @@ countrycounts = data.frame(table(results$county))
 names(countrycounts) <- c("Country", "Entrants")
 ggplot(countrycounts, aes(x = reorder(Country, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("Country") + ggtitle("Entrants By Country") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
-#TODO: print top 10 sorted
+#TODO: print top 10 countries sorted
+
+#TODO: print top 10 cities sorted
 
 #TODO: print countries with <5 entries just for fun?
 
-#TODO: filled country map
+#TODO: filled country map (not required)
 ```
 
 Individually visualized, the age distributions of female (top) and male (bottom) runners are shown below:
@@ -148,7 +150,7 @@ We can also directly compare the age distributions of male and female runners by
 ```{r}
 ggplot(results, aes(x=age, fill = gender)) + geom_density(alpha = 0.3)
 ```
-As seen above, females have a relatively higher proportion of runners younger than approximately 45 years of age, and males have a relatively higher proportion of runners older than 45 (although, in general, the distributions are wuite similar).
+As seen above, females have a relatively higher proportion of runners younger than approximately 45 years of age, and males have a relatively higher proportion of runners older than 45 (although, in general, the distributions are quite similar).
 
 ##2. How fast are the runners of the Boston Marathon? 
 ####What are the average finishing times for men and women, and within age groups? How do these finishing times compare to the qualifying times needed to gain entry into the race?
