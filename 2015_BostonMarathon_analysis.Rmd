@@ -117,6 +117,7 @@ results <- results %>%
            X40k = as.duration(as.difftime(tim = X40k, format = "%T", units = "secs")), 
            pace = as.duration(as.difftime(tim = pace, format = "%T", units = "secs")), 
            official_time = as.duration(as.difftime(tim = official_time, format = "%T", units = "secs"))) %>%
+    mutate(elite = cut(gender_place, breaks = c(0, 50, max(gender_place)), labels = c("elite", "non-elite"))) %>%
     mutate(sec_half = official_time - half) %>%
     merge(qualTimes) %>%
     mutate(qualifying_time = as.duration(as.difftime(tim = qualifying_time, format = "%T", units = "secs"))) %>%
@@ -241,7 +242,7 @@ This picture becomes more nuanced when we examine the runner performance on indi
 ```{r}
 #create variable for second half
 
-half_times <- results[,c("official_time", "bib_number", "gender", "age_group", "half", "sec_half")] %>%
+half_times <- results[,c("official_time", "bib_number", "gender", "elite", "age_group", "half", "sec_half")] %>%
   gather(half, time, half:sec_half) %>%
   mutate(time = as.numeric(time))
  
@@ -249,7 +250,7 @@ half_times$half = factor(ifelse(half_times$half == "half", 1, 2))
 
 ggplot(half_times, aes(x = half, y = time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.5) + ggtitle("Runner Performance on First and Second Halves of Course\n2015 Boston Marathon") + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00"))
 
-#Main plot--TODO: adjust color
+#Main plot
 ggplot(half_times, aes(x = half, y = time)) + geom_violin(aes(fill = half, colour = half), alpha = 0.5) + facet_grid(gender ~ age_group) + stat_summary(fun.y=median, geom="point", fill="white", shape=21, size=2.5) + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00")) + ggtitle("Runner Perfornamce on First and Second Halves of Course By Age Group and Gender\n2015 Boston Marathon")
 
 ggplot(half_times, aes(x = half, y = time)) + geom_jitter(aes(colour = gender, alpha = 0.5)) + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00")) + ggtitle("Runner Perfornamce on First and Second Halves of Course By Gender\n2015 Boston Marathon")
@@ -268,7 +269,7 @@ segment_5k_times <- results %>%
     mutate(segment_5k = X5k, segment_10k = X10k - X5k, segment_15k = X15k-X10k, segment_20k = X20k-X15k, segment_25k = X25k-X20k, segment_30k = X30k-X25k, segment_35k=X35k-X30k, segment_40k = X40k-X35k) %>%
     gather(km_segment, time, segment_5k:segment_40k) %>%
     mutate(km_segment = as.factor(as.numeric(gsub("k", "", gsub("segment_", "", km_segment))))) %>%
-    subset(select = -c(name, age, bib_number, city, origin, X5k:sec_half))
+    subset(select = -c(name, age, bib_number, city, origin, X5k:division_place, sec_half))
 
 ggplot(filter(segment_5k_times, age_group <= "45-49"), aes(x = km_segment, y = time)) + geom_jitter(colour = "dodgerblue", alpha = 0.3)+ geom_boxplot(fill = "white", width = 0.2, outlier.shape = NA) + facet_grid(age_group ~ gender) + xlab("5k segment") + ylab("Segment Time") + scale_y_continuous(limits = c(900, 2700), breaks = c(1200,  1800,  2400), labels = c("20:00", "30:00", "40:00")) + ggtitle("Performance over 5k race segments by gender and age group\n2015 Boston Marathon")
 
@@ -276,8 +277,25 @@ ggplot(filter(segment_5k_times, age_group > "45-49"), aes(x = km_segment, y = ti
     
 ```
 
-##4. Who doesn’t finish the race? 
-####Each year, a small number of runners (approximately 1,000) do not finish the race, which results in a result typically referred to as ‘DNF’ (Did Not Finish). What types of runners comprise this group, in terms of age, gender, and nationality?
+##4. How do the elites run the race?*
+*Note: This replaced the question "Who doesn't finish the race", as noted above, because non-finishers are not included in the race results posted online, and therefore I was not able to obtain this data or analyze the results. Additionally, while this is still an interesting question, this is actually one of the only things the Boston Marathon officially publishes statistics on, at http://registration.baa.org/2015/cf/Public/iframe_Statistics.htm
+Additionally, note that the definition of "elite" runners varies considerably and there is no simple way to distinguish between high-performing "elite" runners and other runners who may still have low bib numbers (indicating a low pre-race seed), because some runners such as past champions (even champions from races decades ago) are often given elite bib numbers. In order to identify the subset used as "elite" here, I simply took the top 50 finishers from each gender (elite runners are not categorized by age group; they are typically only separated into gender divisions).
+####Specifically, how do the elite runners perform across the course? How does this compare to non-elites?
+
+One thing that is immediately clear from examining the performance of the elite runners in the plot below is the difference between how the female and male races played out. Commonly, elite runners form a "lead pack," a small group of front-runners that run in a tight group. This happens for several strategic reasons (runners want to stay very close to their competitors to ensure none takes too great a lead early in the race; runners achieve physical benefits by "drafting" off of others and reducing wind resistance, which is non-trivial when traveling at the 12-miles-per-hour pace the lead runners sometimes achieve). This clearly happened in the women's race, where there is a clear differentiation between a set of nearly a dozen runners who form almost a perfect straight, black line across every segment of the course (until the final 5k, when runners "pushed the pace" and went all-out for a victory, leading some to break away and many others to fall behind). The men's race, in contrast,  never formed as clear of a pack, and during the small segments of the race in which they did, the pack was smaller and much less well-defined.
+
+I also mentioned above that there is a clear pattern in elite running in the final 5k segment of the race that runs contrary to the performance of other runners: they run the final segment **much** faster than the previous one (while we mentioned that some runners improve in the final 5k, many others slow down, and on average there is only a slight improvement). As both the jitter plot and the accompanying bowplot for elite runners show, elite runners tend to go all-out in the final 5k segment of the course, where a select few are able to maintain their pace and achieve one of the top spots, but others cannot keep up and fall behind.
+
+This plot in particular demonstrates the usefulness of the jitter plot, where we can see several points simultaneously despite them having equivalent x- and y-values--this is what makes the "packs" visible as more than just a single, dark dot here.
+
+
+```{r}
+ggplot(filter(segment_5k_times, age_group <= "45-49"), aes(x = km_segment, y = time, col = elite)) + geom_jitter(alpha = 0.3) + scale_colour_manual(values=c("black", "dodgerblue")) + geom_boxplot(fill = "white", width = 0.2, outlier.shape = NA) + facet_grid(gender ~ .) + xlab("5k segment") + ylab("Segment Time") + scale_y_continuous(limits = c(900, 2700), breaks = c(1200,  1800,  2400), labels = c("20:00", "30:00", "40:00")) + ggtitle("Performance over 5k race segments by gender for Elite and Non-Elite Runners (Age < 50)\n2015 Boston Marathon")
+
+ggplot(half_times, aes(x = half, y = time, col = elite)) + geom_jitter(alpha = 0.5) + geom_boxplot(width = 0.2, fill="white", outlier.shape = NA, lwd = 1) + scale_colour_manual(values=c("black", "dodgerblue")) + ggtitle("Runner Performance on First and Second Halves of Course\n2015 Boston Marathon") + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00"))
+
+```
+
 
 #Appendix: Extra Plots and Exploratory Analysis
 
@@ -293,5 +311,5 @@ plot(as.numeric(results$bib_number), as.numeric(results$overall_place), col = "d
 abline(0, 1, col = "gold", lwd = 4)
 
 #ggplot(results, aes(x = bib_number, y = overall_place)) + geom_point()
-#ggplot(results, aes(x = bib_number, y = overall_place)) + stat_binhex()
+ggplot(results, aes(x = bib_number, y = overall_place)) + stat_binhex()
 ```
