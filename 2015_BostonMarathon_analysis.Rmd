@@ -117,6 +117,7 @@ results <- results %>%
            X40k = as.duration(as.difftime(tim = X40k, format = "%T", units = "secs")), 
            pace = as.duration(as.difftime(tim = pace, format = "%T", units = "secs")), 
            official_time = as.duration(as.difftime(tim = official_time, format = "%T", units = "secs"))) %>%
+    mutate(sec_half = official_time - half) %>%
     merge(qualTimes) %>%
     mutate(qualifying_time = as.duration(as.difftime(tim = qualifying_time, format = "%T", units = "secs"))) %>%
     na.omit() %>%
@@ -189,13 +190,22 @@ ggplot(top100, aes(x=age)) + geom_histogram(fill = "dodgerblue", colour="black",
 
 This is perhaps one of the most interesting questions in this report--this question has been, to my knowledge, unanswered by any source since the inception of the Boston Marathon. I have not been able to find any analysis of the data, because this data is not made available, in its entirety, to external analysts and because the Boston Marathon does not publish statistics on runner performance itself. A particularly interesting and unique aspect of this dataset is that runners must *qualify* for the Boston Marathon by running faster than a specified time for their age group and gender--this is what makes the Boston Marathon so illustrious and unique (it is the only one of the World Marathon Majors that requires such a qualifying time--all others openly accept any entrants, regardless of time). This qualifying standard also allows us to compare runners' actual performance on race day to their qualifying time, giving us a sense of how difficult the course is, how consistent the runners of the Boston Marathon are, and whether runners perform better or worse at Boston than they do when qualifying for the race.
 
-In terms of runner performance, I find that the runner performance declines with age, but appears to outperform most other "average" runners across each age group. The average finishing times in each age group, based on only observation, seem to be much faster than those at "typical" races across the board, for both men and women. Additionally, we find that there is a "long tail" of finishing times for every age group, showing that in each age group, there are stragglers who struggle on race day (these could also represent charity runners, who are not subject to the qualifying standards of the marathon and likely perform far worse on race day).
+In terms of runner performance, I calculate the average official finishing times below, and they generally fit the expected pattern (relatively unsurprising, but a sign that this data is correct). Males generally perform about 30 minutes better than females within the same age group, on average, and this trend holds quite tightly with the exception of the 80+ age group, where females outperformed males, on average. The average times here are quite remarkable--"average" finish time for a "typical" marathoner is typically considered abot 4.5 hours, which, on average, nearly every age group outperforms. This is especially remarkable at the extremes--the young runners of the marathon are quite fast as a whole, and the older runners are also much faster than one would expect for runners over 60 years old. The actual average times, in hours, for each age and gender grouping are displated below.
+
+I find that the runner performance declines with age, but appears to outperform most other "average" runners across each age group. The average finishing times in each age group, based on only observation, seem to be much faster than those at "typical" races across the board, for both men and women. Additionally, we find that there is a "long tail" of finishing times for every age group, showing that in each age group, there are stragglers who struggle on race day (these could also represent charity runners, who are not subject to the qualifying standards of the marathon and likely perform far worse on race day).
 
 In terms of performance relative to the qualifying times for the marathon, I find here that many runners perform worse than the qualifying standard in the actual Boston Marathon: 39.6% of official finishers in this dataset failed to achieve the minimum qualifying time necessary to qualify for the race (39% of women failed to achieve their qualifying standard, and 40% of men did). The exact results are shown in the table below. I hypothesize that one of several reasons could explain this. Many runners may only marginally achieve the qualifying standard for the Boston Marathon, and they are in their "best" shape in order to do so--they train intensively to achieve entry into the race, often intentionally choosing "faster" or easier courses to run marathon times that will meet the qualifying standard. When these runners show up on race day in Boston, they are less motivated to run their "best" time, having already achieved their goal of qualifying and are content merely to enjoy the race in Boston, which is a reward for a previosu better time. This combination of being less motivated, perhaps less in shape, and on a challenging course (Boston is famous for its difficult, rolling terrain especially between miles 16 and 21) contributes to worse times in Boston than runners achieve elsewhere.
 
 
 
 ```{r}
+
+avg_time_hrs = ddply(results, .(age_group, gender), summarize, median_time = median(as.numeric(official_time))/3600)
+avg_time_hrs
+
+ggplot(avg_time_hrs, aes(x = age_group, y = median_time, fill = gender)) + geom_bar(position="dodge", stat = "identity", colour = "black") + scale_fill_manual(values=c("dodgerblue", "gray")) + ggtitle("Average Official Finishing Time By Age Group and Gender\n2015 Boston Marathon") + ylab("Median Time (Hours)") + xlab("Age Group")
+
+
 ggplot(results, aes(x=age_group, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Time Distribution By Age Group\n2015 Boston Marathon") + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00"))
 ggplot(results, aes(x=age_group, y=official_time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Time Distribution By Age Group\n2015 Boston Marathon") + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00"))
 
@@ -223,29 +233,32 @@ ggplot(subset(results, gender == "F"), aes(x=gender, y=official_time)) + geom_vi
 ##3. How do runners run the race? 
 ####Do they typically start fast, and slow down as the race progresses and they become fatigued, or do the more experienced runners that qualify for Boston pace themselves and achieve an even performance? How does this vary across age groups and genders?
 
+Again, this is a particularly interesting and useful question, because it is one that, to my knowledge, has never been answered. Several interesting trends related to Boston Marathon finishers' performance on the course are displayed below. We see that, in general, runner performance decreases in the second half of the race--something that is relatively unsurprising, given the challenges and fatigue of the marathon combined with the notoriously challenging second half of the course. Indeed, the small change between the median times is actually somewhat surprising, suggesting that Boston Marathon finishers are relatively well-prepared for the marathon distance and are able to achieve a fairly consistent effort over the entire 26.2-mile course. It reveals that there is a "long tail" of runners who struggle in the second half of the race and that variation in times is greater as the race moves on, but that, in general, performance is consistent across the halves of the course. This consistency decreases as we look at older age groups--in general, older runners appear to show more fatigue and slow down more in the second half of the race. Looking in slightly greater detail at smaller course segments, I find that there is a relatively consistence, across-age-group increase in final 5k times relative to the time it takes runners to ru the first 5k segment in the race, but that this increase is relatively small (no more than 3-5 minutes, on average, for the 5k segment, which is equivalent to 3.1 miles). 
+
+This picture becomes more nuanced when we examine the runner performance on individual 5k segments over the course of the race. We see that runner performance is generally quite level and consistent on each 5k semgent over the first half of the course when separated by age group, but that in the second half--especially at the 30k and 35k marks--runner times increase. This corresponds with approximately miles 18-21 of the course, where the most extreme hill sections of the course occurs, so it matches what we would expect for runner performance. What is most interesting when looking at performance in 5k segments is that runner performance actually **improves** significantly for nearly every age group. This makes some sense: the final segment of the course is relatively flat, as runners enter the city from the hills of Newton just outside it. Additionally, this is certainly the most exciting segment of the race, because runners are surrounded by deep crowds lining the street, cheering them on to the finish line. This "crowd power" could certainly explain a great deal of the improvement visible across the board for runners in the final leg of the race--which would otherwise be the most difficult part.
+
+
 ```{r}
 #create variable for second half
-results$sec_half = results$official_time - results$half
 
-
-half_times <- results[,c("bib_number", "gender", "age_group", "half", "sec_half")] %>%
-  gather(half, time, half:sec_half)
+half_times <- results[,c("official_time", "bib_number", "gender", "age_group", "half", "sec_half")] %>%
+  gather(half, time, half:sec_half) %>%
+  mutate(time = as.numeric(time))
  
 half_times$half = factor(ifelse(half_times$half == "half", 1, 2))
-half_times$time = as.numeric(half_times$time)
 
-ggplot(half_times, aes(x = half, y = time)) + geom_violin(fill = "dodgerblue", alpha = 0.5)
+ggplot(half_times, aes(x = half, y = time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.5) + ggtitle("Runner Performance on First and Second Halves of Course\n2015 Boston Marathon") + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00"))
 
 #Main plot--TODO: adjust color
-ggplot(half_times, aes(x = half, y = time)) + geom_violin(aes(fill = half, colour = half), alpha = 0.5) + facet_grid(gender ~ age_group) + stat_summary(fun.y=median, geom="point", fill="white", shape=21, size=2.5)
+ggplot(half_times, aes(x = half, y = time)) + geom_violin(aes(fill = half, colour = half), alpha = 0.5) + facet_grid(gender ~ age_group) + stat_summary(fun.y=median, geom="point", fill="white", shape=21, size=2.5) + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00")) + ggtitle("Runner Perfornamce on First and Second Halves of Course By Age Group and Gender\n2015 Boston Marathon")
 
-ggplot(half_times, aes(x = half, y = time)) + geom_jitter(aes(colour = gender, alpha = 0.5))
+ggplot(half_times, aes(x = half, y = time)) + geom_jitter(aes(colour = gender, alpha = 0.5)) + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00")) + ggtitle("Runner Perfornamce on First and Second Halves of Course By Gender\n2015 Boston Marathon")
 
 
 #plot difference between first 5k and last 5k
-ggplot(results, aes(x=age_group, y=results$X40k - results$X35k-results$X5k)) + geom_violin(fill = "dodgerblue", alpha = 0.3) + stat_summary(fun.y=median, geom="point", fill="gold", shape=21, size=2.5)
+ggplot(results, aes(x=age_group, y=results$X40k - results$X35k-results$X5k)) + geom_violin(fill = "dodgerblue", alpha = 0.3) + stat_summary(fun.y=median, geom="point", fill="gold", shape=21, size=2.5) + scale_y_continuous(breaks=c(-1800, 0, 1800, 3600, 5400), labels=c("-00:30", "0", "00:30", "01:00", "01:30")) + ggtitle("Difference Between First and Final 5k Times By Age Group\n2015 Boston Marathon") + ylab("Difference Between (35k, 40k) Segment and First 5k Segment Times (hr:min)")
 
-ggplot(results, aes(x=age_group, y=results$X40k - results$X35k-results$X5k)) + geom_jitter(colour = "dodgerblue", alpha = 0.3) + scale_y_continuous(limits = c(-1800, 1800), breaks = c(-1800, -1200, -600, 0, 600, 1200, 1800), labels = c("-30:00", "-20:00", "-10:00", "00:00", "+10:00", "+20:00", "+30:00")) + ylab("Difference in minutes") + ggtitle("Difference between first and final 5k times\nby age group")
+ggplot(results, aes(x=age_group, y=results$X40k - results$X35k-results$X5k)) + geom_jitter(colour = "dodgerblue", alpha = 0.3) + scale_y_continuous(limits = c(-1800, 1800), breaks = c(-1800, -1200, -600, 0, 600, 1200, 1800), labels = c("-30:00", "-20:00", "-10:00", "00:00", "+10:00", "+20:00", "+30:00")) + ylab("Difference (min:sec)") + ggtitle("Difference between first and final 5k times  By Age Group\n2015 Boston Marathon")
 ```
 
 ```{r}
