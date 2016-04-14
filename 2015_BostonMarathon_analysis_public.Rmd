@@ -1,0 +1,343 @@
+---
+title: "2015 Boston Marathon Results Analysis"
+author: "Joshua Gardner -  jpgard.com"
+date: "April 5, 2016"
+output: html_document
+---
+
+#Background and Motivation
+
+The Boston Marathon is one of the world's oldest and most prestigious marathons. Begun in 1897, the Boston Marathon is the world's oldest annual marathon and ranks as one of the world's best-known racing events. It is one of six World Marathon Majors, and is one of four major events held in the United States through the years of both World Wars (Kentucky Derby, Rose Parade, and Westminster Kennel Club Dog Show are the others). The Boston Marathon attracts olympians and world record-holders each year, and as many as 50,000 amateur and professional runners gather to join an elite and competitive field of runners. The Boston Marathon is particularly unique in that registration is not open to all participants--runners must qualify by running a specified marathon time for their age group and gender--making the race especially prestigious and a career-long goal for many runners. Held on Patriot's Day each year, the race attracts well over 500,000 spectators along its historic and famous 26.2 mile course from Hopkinton into downtown Boston.
+
+This project was motivated by several factors. Despite how famous and historic the race and its course are, very little is publicly shared about how participants actually perform in the marathon. The Boston Marathon makes searchable results available on their website, but reports very little about how runners actually perform on the course. Given that this is one of the world's most prestigious marathons, and given the unique population of runners that participate in this race, it seemed like an especially interesting and useful dataset to obtain and explore. Additionally, having participated in the boston marathon five times as a runner myself, I was particularly interested in learning more about the race's results. 
+
+The four specific questions I intended to explore for this dataset originally were:
+
+* Who are the runners of the Boston Marathon? Where do most runners come from, what are their ages, what genders are they?
+*How fast are the runners of the Boston Marathon? What are the average finishing times for men and women, and within five-year age groups (i.e., 25-30 years old)? How do these finishing times compare to the qualifying times needed to gain entry into the race?
+* How do runners run the race? Do they typically start fast, and slow down as the race progresses and they become fatigued, or do the more experienced runners that qualify for Boston pace themselves and achieve an even performance? How does this vary across age groups and genders?
+* Who doesn’t finish the race? Each year, a small number of runners (approximately 1,000) do not finish the race, which results in a result typically referred to as ‘DNF’ (Did Not Finish). What types of runners comprise this group, in terms of age, gender, and nationality?
+
+The final question, however, is not answerable with the dataset I obtained: the BAA (Boston Athletic Association, the race's organizing body) does not publish results for racers who do not post a finishing time. So, I replaced the final question with:
+
+* How do elite athletes perform in the race?
+
+#Data Source
+
+The data obtained in this project are not publicly available, as a whole, which was a main source of motivation for this project--searchable Boston Marathon results are available at BAA.org, but the results are limited to a maximum of 25 pages of results, and there are no visualizations or aggregate statistics available for either demographic or performance-related aspects of the race participants. The data were obtained by creating a web scraping program in Python that was developed with a friend (the version of this scraper used to extract the data for this project is attached; the most recent version of the scraper is maintained at https://github.com/jpgard). The program systematically searches for groups of runners by country and state, extracts the page html into a database, and then parses the html using BeautifulSoup to create a csv file of the data fields scraped from the site.
+
+The original data includes the following fields, with data types listed in parentheses:
+
+* bib_number (numeric): The athlete's number. It is important to note that bib numbers are actually more than just nominal vairables and contain important data: bib bumbers are assigned in ascending order based on athletes' qualifying times (every athlete is required to submit a verifiable qualifying time from a previous marathon that meets or exceeds a specific standard for the athlete's gender and age group). These can be thought of as pre-race rankings. 
+name, age, gender, city, state, country, origin: These are all various demographic variables for the runners. Of particular interest here are age (which is used to generate age groupings), gender, and country (the runner's country of citizenship).
+* 5k, 10k, 15k, 20k, half, 25k, 30k, 35k, 40k, official_time (string, converted to duration object): The times in which the runner completed various distance segments of the course. These are used to explore particularly interesting metrics related to runner performance.
+* pace: The runner's average pace, in minutes per mile, across the 26.2 mile race (this is obtained by dividing the runner's official time by 26.2).
+* projected_time (string): This variable is nulled for every runner. It appears that this is populated during the race for spectators, and is a projection based on runners' current pace on race day, but that the projected time is removed once runners finish the race.	
+* overall.place, gender.place, division.place((string, converted to numeric)): The runner's place, based on finishing time, overall, in their gender, and in their age division.
+
+In all, this dataset contained 22,328 observations of 26 variables, after removing rows without data. This dataset should represent all runners who received official finish times for the 2015 Boston Marathon, but excludes runners who did not start or finish the race, dropped out, missed any checkpoint along the way, or had their results excluded from the online database.
+
+#Methods
+
+####(a) how did you manipulate the data to prepare it for analysis?  
+
+Extensive manipulation was performed on the data even in order to obtain it, and a great deal of further manipulation was required to prepare it for analysis and visualization. As mentioned above, the data was obtained from the BAA.org searchable results page using a web scraper, attached to this submission and also poasted at https://github.com/jpgard. This scraper systematically submitted searches by using http 'post' requests identical to those generated from an in-browser search. The scraper then stored the raw html in a database for later extraction, so that html could be stored and manipulated without repeatedly querying the results page. This html was parsed, using BeautifulSoup, and a csv with all of the available data fields from the search results was output by the scraper. 
+
+The csv file from the web scraper was then imported into R, and, in the steps shown in the code below, several manipulations were performed. The primary manipulations were:
+
+
+#####Converting numeric and factor data types appropriately: 
+Several of the data fields indicated above were imported as strings, but required simple manipulations to transform them into numeric or factor data types. These were performed manually, and were necessary to achieve the correct functionality in plotting and in calculating a variety of statistics.
+
+
+#####Generating age groups: 
+Boston Marathon participants span a wide range of ages, and there is a great deal of variation in performance across age groups. For most metrics, comparisons across age groups introduced excessive noise into comparisons and were not meaningful. Additionally, many race statistics are typically reported by age group. For these reasons, I manually generated age groups for runners that matched the age groups used by the BAA for qualifying times (information on those groups is available at http://www.baa.org/Races/Boston-Marathon/Participant-Information/Qualifying.aspx). Age groups were generated using the **cut()** function in R.
+
+
+#####Converting times to dateTime and duration objects:
+Dealing with times is difficult, but dealing with the times as strings would be nearly impossible. I experimented with several different packages and data types for handling the times, but eventually settled on converting the times to *duration* objects using the **as.duration()** function. I elected not to use POSIX objects because these inherently introduce a date into the object (the POSIX class is typically used for times of day and dates), and the race times being used here did not contain any date elements. Using the *duration* class seemed more semantically accurate than simply encoding the times as numeric values, for instance, and also provided other useful fonctionality, like the ability to easily change between units of time (seconds, minutes, hours).
+
+
+#####Deriving times for second half and all 5k race segments (5k, 10k, 15k etc): 
+In order to answer several questions, and in particular question 3, about runner performance and how runners actually run the race, I used the plyr ecosystem's piping functionality to create a series of columns that subtracted consecutive 5k segment times to find their differences, therefore generating each individual runners' times for each individual segment of the race. Then, I subsetted the data to only include runner demographic information and used the gather() function in the tidyr package to put the data in a "long" format (as opposed to the "wide" structure it had, which left certain variables encoded as column names instead of as actual variables in the dataset) for convenient plotting and groupwise calculations. This type of task demonstrates the usefulness and efficiency of the piping operator, which achieves a significant reduction of the amount of code required to generate these variables, and eliminates the need for redunant re-assignment of the results data frame.
+
+
+####(b) How did you handle missing, incomplete, or noisy data?
+
+The dataset was generally quite clean, but any rows with missing data were removed (there were fewer than 300 rows that contained missing information for any field, so approximately 99% of the data was retained for the entire analysis). Unfortunately, the Boston Marathon removed a great deal of the missing data prior to publishing it (no runners without finishing times were entered in the results database on their website), which meant one of the analyses I intended to do (examining what types of runners do not finish the race) was not possible.
+
+
+####(c) How did you perform data analysis in code, i.e. Briefly describe the workflow of your source code
+The general logic of the code was to perform as much of the data "tidying" as possible immediately after reading it in, as is visible in the first chunk of code below where almost all of the transformations described above were performed. The intention here was to ensure that the data being passed to the various plotting functions below was as consistent as possible--if different segments of code required data in different formats (which would happen if these transformations were performed in a piecemeal or ad-hoc fashion), it would be difficult to keep track of the state of the dataset at any point.
+
+As mentioned above, whenever possible, the 'piping' operator in plyr was used to perform data transformations in a simple, cohesize, and readable way. Essentially, the pipe operation (**%>%**) allows a single data frame to be "passed" along through a series of functions, allowing a chain or "pipeline" of operations to be performed on that dataframe. Not only does this reduce redundant assignment operators in code, but it also allows for more readable data transformations. This was my first experience using the piping operator, but I found it easy to use in conjunction with the suite of plyr and dplyr functions, as well as with other packages written by the same author (Hadley Wickham) that are used in this scripot, such as lubridate and tidyr.
+
+In some cases where data was only needed for a single graph or series of graphs but not for any others in the script, such as in the case of the individual 5k segment times that were computed, a new dataset was created and the necessary transformations were only performed on that dataset. This avoided adding unnecessary "clutter" variables to the main results dataset that weren't needed for other computations or visualizations.
+
+####(d) What challenges did you encounter and how did you solve them?
+
+There were several unique challenges presented by this data--this is not an exhaustive list, but it highlights some of the biggest challenges faced in this project.
+
+
+#####Obtaining the data: 
+As mentioned above, even  acquiring this data was perhaps the most challenging--and the most interesting--part of the project: this data was novel and interesting precisely because it isn't available anywhere else and represents a unique, distiguished, and diverse group of athletes participating in one of the world's most prestigious athletic events. Not only did the data need to be scraped by using post requests that mimiced the site's own data search capabilities, but the HTML from the page then needed to be parsed (a non-trivial task, because the tables on the results pages were quite messy--they included two "rows" of data each, stacked on top of each other, and results were limited to 25 runners per page so sometimes as many as 20 pages of results--the maximum number--needed to be iterated through for a given search). Additionally, the site had a limit of a maximum of 1,000 runners per results set, so I needed to find a way of systematically iterating through the runners that returned sets of results that were smaller than 1,000 each--I did this by iterating through each country, and for the US and Canada, iterating through the states within that country. After the HTML was parsed, the data was deposited into a CSV file using the **dictwriter** method from the Python CSV module.
+
+
+#####Working with times: 
+Times are a particularly challenging data type to work with for any data science task--but this specific analysis was made especially challenging because most of the date/time classes in R are made for dates *and* times, not just times. I experimented with a few different object classes before settling on using the **duration** object, which did not contain a date component (essential for this task, because in addition to being semantically incorrect, using an object that required dates could lead to potential problems downstream). This allowed for easy computation with the times (**duration** objects can be subtracted normally like numbers) and easy switching between units.
+
+
+#####Dealing with many data points: 
+While this dataset isn't nearly as massive as many modern "big data" datasets, with over 22,000 runners in the final dataset, the dataset was large enough to be challenging to visualize. For example, a scatterplot of 22,000 points on a typical scatterplot was, with default settings, far to "fuzzy" and obscure to be useful. Several strategies were used to deal with visualizing such a large dataset: using tools like jittering and semi-transparent markers were helpful to avoid "cluttered" plots, and focusing on visualizing *distributions* instead of visualizing every single individual data point was also useful--this focused on trends and the overall "shape" of the data instead of focusing on every individual point. I explored several different ways of visualizing these distributions, including simple bar graphs of counts, as well as histograms, boxplots, and violin plots, as well as combinations of these (such as violin plots with box plots overlaid) as I believed each data question required.
+
+
+#####Visualizing distributions across several groups: 
+In some cases, the factor variables that were used in visualizations contained many levels: there were 10 age groups, over 77 unique countries, and 5,313 cities in the dataset. Finding ways to still separate the data across these classes, because there was important variation between them that was essential for the visualizations, but not clutter the graph with excessive factor levels, was a challenge. One of the most useful solutions here was utilizing facets--graphs could be faceted by two different factors which, in many cases, allowed several distinct combinations of factor levels to be included in a single plot.
+
+
+
+#Data Preprocessing
+
+```{r, warning=FALSE, cache=TRUE}
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(tidyr)
+
+
+results = read.csv("resultsfinal.csv", stringsAsFactors=FALSE)
+
+#import qualifying times and add names to match results data for easy merging
+qualTimes = read.table("qualifyingTimes.txt", sep = '\t', colClasses = c("factor", "factor", "character"))
+names(qualTimes) = c("age_group", "gender", "qualifying_time")
+
+
+#create divisions for age groups, based on age goups listed at http://raceday.baa.org/statistics.html
+#create factor variables from various demographics
+#convert times to duration objects using as.difftime() and lubridate's as.duration()
+#merge with qualifying times data and perform transformations to create duration objects from qualifying time strings
+#create factor for elite runners
+
+results <- results %>%
+    mutate(age_group = cut(results$age, breaks = c(0, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80), labels = c("18-34", "35-39", "40-44", "45-49", "50-54", "60-64", "65-69", "70-74", "75-79", "80+"), right = FALSE, ordered_result = TRUE)) %>%
+    mutate(gender = factor(gender), county = factor(county)) %>%
+    mutate(X5k = as.duration(as.difftime(tim = X5k, format = "%T", units = "secs")), 
+           X10k = as.duration(as.difftime(tim = X10k, format = "%T", units = "secs")), 
+           X15k = as.duration(as.difftime(tim = X15k, format = "%T", units = "secs")), 
+           X20k = as.duration(as.difftime(tim = X20k, format = "%T", units = "secs")), 
+           half = as.duration(as.difftime(tim = half, format = "%T", units = "secs")), 
+           X25k = as.duration(as.difftime(tim = X25k, format = "%T", units = "secs")), 
+           X30k = as.duration(as.difftime(tim = X30k, format = "%T", units = "secs")), 
+           X35k = as.duration(as.difftime(tim = X35k, format = "%T", units = "secs")), 
+           X40k = as.duration(as.difftime(tim = X40k, format = "%T", units = "secs")), 
+           pace = as.duration(as.difftime(tim = pace, format = "%T", units = "secs")), 
+           official_time = as.duration(as.difftime(tim = official_time, format = "%T", units = "secs"))) %>%
+    mutate(elite = cut(gender_place, breaks = c(0, 50, max(gender_place)), labels = c("elite", "non-elite"))) %>%
+    mutate(sec_half = official_time - half) %>%
+    merge(qualTimes) %>%
+    mutate(qualifying_time = as.duration(as.difftime(tim = qualifying_time, format = "%T", units = "secs"))) %>%
+    na.omit() %>%
+    unique()
+
+
+
+```
+
+#Analysis: Four Guiding Questions
+
+##1. Who are the runners of the Boston Marathon? 
+####Where do most runners come from, what are their ages, what genders are they?
+
+My analysis below shows that the overwhelming majority of runners that recorded official finish times for the 2015 Boston Marathon come from within the United States, followed (distantly) by Canada, Great Britain, Mexico, Germany, Italy, Japan, Austria, Brazil, and France. In all, there are 77 countries represented in the list of finishers. There is a "long tail" of many countries with fewer entrants, and 31 countries with only five or fewer participants. Approximately 57% of finishers were male and 43% were female.
+
+The composition of the top runners is slightly different--and this composition changes as we look at progressively smaller samples of these runners (only the nationality of the top 50 runners is shown here, but as we continue to narrow the size of the "top runners" window, the size of the U.S. contingent continues to shrink, while the other countries remain relatively stable). In general, Kenya, Ethiopia, and Japan are disproportionately represented in the top overall finishers relative to their proportion of all finishers.
+
+In terms of age, the median age is between 40 and 50 for all runners, with the female runners having a slightly younger overall age distribution than male runners. Females have a relatively higher proportion of runners younger than approximately 45 years of age, and males have a relatively higher proportion of runners older than 45 (although, in general, the distributions are quite similar). This becomes particularly evident at the highest extremes of the age grouping, below, where we can see that there was only one female finisher in the 80+ age group.
+
+The age distribution of the top 100 overall finishers is much younger, with a median age of 29.5, as shown in the final plot. There were only 9 finishers in the top 100 over the age of 35 (but, it is worth noting, the race was won in 2014 by Meb Kheflezghi, who was nearly 37 years old at the time of his victory).
+
+
+
+```{r, echo=FALSE, warning=FALSE, fig.width=15, cache=TRUE}
+countrycounts = data.frame(table(results$county))
+names(countrycounts) <- c("Country", "Entrants")
+countrycounts = arrange(countrycounts, desc(Entrants), Country)
+
+ggplot(countrycounts, aes(x = reorder(Country, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("Country") + ggtitle("Official Finishers By Country\n2015 Boston Marathon") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+```{r, echo=FALSE, warning=FALSE, cache=TRUE}
+ggplot(countrycounts[1:10,], aes(x = reorder(Country, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("Country") + ggtitle("Top 10 Countries By Official Finisher Counts\n2015 Boston Marathon") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggplot(filter(countrycounts, Entrants <= 5), aes(x = reorder(Country, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("Country") + ggtitle("Countries With Five or Fewer Official Finishers") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggplot(results, aes(x = gender)) + geom_bar() + ggtitle("Official Finishers By Gender\n2015 Boston Marathon")
+
+#top 25 cities sorted
+citycounts = data.frame(table(results$city))
+names(citycounts) <- c("City", "Entrants")
+citycounts = arrange(citycounts, desc(Entrants), City)
+
+ggplot(citycounts[1:25,], aes(x = reorder(City, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("City") + ggtitle("Top 20 Cities By Official Finisher Counts\n2015 Boston Marathon") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+#TODO: filled or labeled country map (not required)
+
+top_window_size = 50
+top = data.frame(table(arrange(results, official_time)[1:top_window_size,"county"]))
+names(top) <- c("Country", "Entrants")
+
+ggplot(filter(top, Entrants != 0), aes(x = reorder(Country, -Entrants), y = Entrants)) + geom_bar(stat="identity") + xlab("Country") + ggtitle("Top 50 Official Finishers By Country\n2015 Boston Marathon") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+
+
+ggplot(results, aes(x=age)) + geom_histogram(fill = "dodgerblue", colour="black", alpha = 0.3) + facet_grid(gender ~ .) + ylab("Count") + xlab("Age") + ggtitle("Distribution of Official Finishers by Age and Gedner\n2015 Boston Marathon")
+
+
+ggplot(results, aes(x=age, fill = gender)) + geom_density(alpha = 0.7) + scale_fill_manual(values=c("dodgerblue", "ghostwhite")) + ggtitle("Age Distributions of Male and Female Finishers\n2015 Boston Marathon")
+
+top100 = top_n(results, 100, -official_time)
+ggplot(top100, aes(x=age)) + geom_histogram(fill = "dodgerblue", colour="black", alpha = 0.3) + ylab("Count") + xlab("Age") + ggtitle("Age Distribution of Top 100 Official Finishers\n2015 Boston Marathon")
+```
+
+##2. How fast are the runners of the Boston Marathon? 
+####What are the average finishing times for men and women, and within age groups? How do these finishing times compare to the qualifying times needed to gain entry into the race?
+
+This is perhaps one of the most interesting questions in this report--this question has been, to my knowledge, unanswered by any source since the inception of the Boston Marathon. I have not been able to find any analysis of the data, because this data is not made available, in its entirety, to external analysts and because the Boston Marathon does not publish statistics on runner performance itself. A particularly interesting and unique aspect of this dataset is that runners must *qualify* for the Boston Marathon by running faster than a specified time for their age group and gender--this is what makes the Boston Marathon so illustrious and unique (it is the only one of the World Marathon Majors that requires such a qualifying time--all others openly accept any entrants, regardless of time). This qualifying standard also allows us to compare runners' actual performance on race day to their qualifying time, giving us a sense of how difficult the course is, how consistent the runners of the Boston Marathon are, and whether runners perform better or worse at Boston than they do when qualifying for the race.
+
+In terms of runner performance, I calculate the average official finishing times below, and they generally fit the expected pattern (relatively unsurprising, but a sign that this data is correct). Males generally perform about 30 minutes better than females within the same age group, on average, and this trend holds quite tightly with the exception of the 80+ age group, where females outperformed males, on average. The average times here are quite remarkable--"average" finish time for a "typical" marathoner is typically considered abot 4.5 hours, which, on average, nearly every age group outperforms. This is especially remarkable at the extremes--the young runners of the marathon are quite fast as a whole, and the older runners are also much faster than one would expect for runners over 60 years old. The actual average times, in hours, for each age and gender grouping are displayed below. Additionally, the distribution of times within each age group are quite tight--the middle 50% of runners in each group are all clustered within approximately 35 minutes of each other. This is visible in the "fat" violin plots for each age group, and in the very narrow "box" component of the boxplots.
+
+I find that the runner performance declines with age, but appears to outperform most other "average" runners across each age group. The average finishing times in each age group, based on only observation, seem to be much faster than those at "typical" races across the board, for both men and women. Additionally, we find that there is a "long tail" of finishing times for every age group, showing that in each age group, there are stragglers who struggle on race day (these could also represent charity runners, who are not subject to the qualifying standards of the marathon and likely perform far worse on race day).
+
+In terms of performance relative to the qualifying times for the marathon, I find here that many runners perform worse than the qualifying standard in the actual Boston Marathon: 39.6% of official finishers in this dataset failed to achieve the minimum qualifying time necessary to qualify for the race (39% of women failed to achieve their qualifying standard, and 40% of men did). The exact results are shown in the table below. I hypothesize that one of several reasons could explain this. Many runners may only marginally achieve the qualifying standard for the Boston Marathon, and they are in their "best" shape in order to do so--they train intensively to achieve entry into the race, often intentionally choosing "faster" or easier courses to run marathon times that will meet the qualifying standard. When these runners show up on race day in Boston, they are less motivated to run their "best" time, having already achieved their goal of qualifying and are content merely to enjoy the race in Boston, which is a reward for a previosu better time. This combination of being less motivated, perhaps less in shape, and on a challenging course (Boston is famous for its difficult, rolling terrain especially between miles 16 and 21) contributes to worse times in Boston than runners achieve elsewhere.
+
+
+
+```{r, echo=FALSE, warning=FALSE, cache=TRUE}
+avg_time_hrs = ddply(results, .(age_group, gender), summarize, median_time = median(as.numeric(official_time))/3600)
+avg_time_hrs
+
+ggplot(avg_time_hrs, aes(x = age_group, y = median_time, fill = gender)) + geom_bar(position="dodge", stat = "identity", colour = "black") + scale_fill_manual(values=c("dodgerblue", "gray")) + ggtitle("Average Official Finishing Time By Age Group and Gender\n2015 Boston Marathon") + ylab("Median Time (Hours)") + xlab("Age Group") + ylab("Official Time (hh:mm:ss)")
+
+
+ggplot(results, aes(x=age_group, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Time Distribution By Age Group\n2015 Boston Marathon") + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00")) + xlab("Age Group") + ylab("Official Time (hh:mm:ss)")
+ggplot(results, aes(x=age_group, y=official_time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Time Distribution By Age Group\n2015 Boston Marathon") + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00")) + xlab("Age Group") + ylab("Official Time (hh:mm:ss)")
+
+ggplot(results, aes(x=gender, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Time Distribution by Gender\n2015 Boston Marathon") + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00")) + xlab(NULL) + ylab("Official Time (hh:mm:ss)")
+ggplot(results, aes(x=gender, y=official_time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Time Distribution by Gender\n2015 Boston Marathon") + xlab(NULL) + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00")) + ylab("Official Time (hh:mm:ss)")
+```
+
+#####Qualifying Times
+
+Did runners achieve qualifying-level performance in the marathon?
+
+```{r, cache=TRUE}
+results$met_qual_time = ifelse(results$official_time <= results$qualifying_time, TRUE, FALSE)
+table(results$met_qual_time, results$gender)
+```
+
+```{r, echo=FALSE, warning=FALSE, cache=TRUE}
+ggplot(results, aes(x = met_qual_time)) + geom_bar() + xlab("Achieved Qualifying Time For Age Group") + ylab("Finisher Count") + ggtitle("Official Finishers Relative to Gender + Age Group Qualifying Standards\n2015 Boston Marathon") + facet_grid(gender ~ .) 
+
+ggplot(results, aes(x = age)) + geom_histogram() + xlab("Achieved Qualifying Time For Age Group") + ylab("Finisher Count") + ggtitle("Age Distribution of Runners Achieving Qualifying Standards\n2015 Boston Marathon") + facet_grid(met_qual_time~.)
+```
+
+```{r, echo=FALSE, warning=FALSE, fig.width=15, fig.height=9, cache=TRUE}
+#faceted plots with qualifying times for men, women
+ggplot(subset(results, gender == "M"), aes(x=gender, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Times By Age Group (Men)\n Relative to Qualifying Standard")  + geom_hline(aes(yintercept=qualifying_time), size=2, colour = "gold") + facet_grid(. ~ age_group) + theme(axis.text.x = element_blank(), axis.title.x=element_blank(), axis.title.y=element_blank()) + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00")) + theme(axis.ticks = element_blank())
+
+ggplot(subset(results, gender == "F"), aes(x=gender, y=official_time)) + geom_violin(fill = "dodgerblue", alpha = 0.5) + ggtitle("Official Finishing Times By Age Group (Women)\n Relative to Qualifying Standard")  + geom_hline(aes(yintercept=qualifying_time), size=2, colour = "gold") + facet_grid(. ~ age_group) + theme(axis.text.x = element_blank(), axis.title.x=element_blank(), axis.title.y=element_blank()) + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400, 18000, 21600), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00", "5:00:00", "6:00:00")) + theme(axis.ticks = element_blank())
+
+
+#TODO: generate "split" violin plots for male/female, within each age group --  see http://stackoverflow.com/questions/35717353/split-violin-plot-with-ggplot2
+```
+
+
+##3. How do runners run the race? 
+####Do they typically start fast, and slow down as the race progresses and they become fatigued, or do the more experienced runners that qualify for Boston pace themselves and achieve an even performance? How does this vary across age groups and genders?
+
+Again, this is a particularly interesting and useful question, because it is one that, to my knowledge, has never been answered. Several interesting trends related to Boston Marathon finishers' performance on the course are displayed below. We see that, in general, runner performance decreases in the second half of the race--something that is relatively unsurprising, given the challenges and fatigue of the marathon combined with the notoriously challenging second half of the course. Indeed, the small change between the median times is actually somewhat surprising, suggesting that Boston Marathon finishers are relatively well-prepared for the marathon distance and are able to achieve a fairly consistent effort over the entire 26.2-mile course. It reveals that there is a "long tail" of runners who struggle in the second half of the race and that variation in times is greater as the race moves on, but that, in general, performance is consistent across the halves of the course. This consistency decreases as we look at older age groups--in general, older runners appear to show more fatigue and slow down more in the second half of the race. Looking in slightly greater detail at smaller course segments, I find that there is a relatively consistence, across-age-group increase in final 5k times relative to the time it takes runners to ru the first 5k segment in the race, but that this increase is relatively small (no more than 3-5 minutes, on average, for the 5k segment, which is equivalent to 3.1 miles). 
+
+This picture becomes more nuanced when we examine the runner performance on individual 5k segments over the course of the race. We see that runner performance is generally quite level and consistent on each 5k semgent over the first half of the course when separated by age group, but that in the second half--especially at the 30k and 35k marks--runner times increase. This corresponds with approximately miles 18-21 of the course, where the most extreme hill sections of the course occurs, so it matches what we would expect for runner performance. What is most interesting when looking at performance in 5k segments is that runner performance actually **improves** significantly for nearly every age group. This makes some sense: the final segment of the course is relatively flat, as runners enter the city from the hills of Newton just outside it. Additionally, this is certainly the most exciting segment of the race, because runners are surrounded by deep crowds lining the street, cheering them on to the finish line. This "crowd power" could certainly explain a great deal of the improvement visible across the board for runners in the final leg of the race--which would otherwise be the most difficult part.
+
+
+```{r, echo=FALSE, warning=FALSE, cache=TRUE}
+#create variable for second half
+
+half_times <- results[,c("official_time", "bib_number", "gender", "elite", "age_group", "half", "sec_half")] %>%
+  gather(half, time, half:sec_half) %>%
+  mutate(time = as.numeric(time))
+ 
+half_times$half = factor(ifelse(half_times$half == "half", 1, 2))
+
+ggplot(half_times, aes(x = half, y = time)) + geom_boxplot(fill = "dodgerblue", alpha = 0.5) + ggtitle("Runner Performance on First and Second Halves of Course\n2015 Boston Marathon") + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00"))
+```
+
+```{r, fig.width=15, fig.height=9, echo=FALSE, warning=FALSE, cache=TRUE}
+#Main plot
+ggplot(half_times, aes(x = half, y = time)) + geom_violin(aes(fill = half, colour = half), alpha = 0.5) + facet_grid(gender ~ age_group) + stat_summary(fun.y=median, geom="point", fill="white", shape=21, size=2.5) + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00")) + ggtitle("Runner Perfornamce on First and Second Halves of Course By Age Group and Gender\n2015 Boston Marathon")
+```
+
+```{r, echo=FALSE, warning=FALSE, cache=TRUE}
+ggplot(half_times, aes(x = half, y = time)) + geom_jitter(aes(colour = gender, alpha = 0.5)) + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00")) + ggtitle("Runner Performance on First and Second Halves of Course By Gender\n2015 Boston Marathon")
+
+
+#plot difference between first 5k and last 5k
+ggplot(results, aes(x=age_group, y=results$X40k - results$X35k-results$X5k)) + geom_violin(fill = "dodgerblue", alpha = 0.3) + stat_summary(fun.y=median, geom="point", fill="gold", shape=21, size=2.5) + scale_y_continuous(breaks=c(-1800, 0, 1800, 3600, 5400), labels=c("-00:30", "0", "00:30", "01:00", "01:30")) + ggtitle("Difference Between First and Final 5k Times By Age Group\n2015 Boston Marathon") + ylab("Difference Between Final and First 5k Segment Times (hr:min)")
+
+ggplot(results, aes(x=age_group, y=results$X40k - results$X35k-results$X5k)) + geom_jitter(colour = "dodgerblue", alpha = 0.3) + scale_y_continuous(limits = c(-1800, 1800), breaks = c(-1800, -1200, -600, 0, 600, 1200, 1800), labels = c("-30:00", "-20:00", "-10:00", "00:00", "+10:00", "+20:00", "+30:00")) + ylab("Difference (min:sec)") + ggtitle("Difference between Final and First 5k times  By Age Group\n2015 Boston Marathon")
+```
+
+```{r, echo=FALSE, fig.width=15, fig.height = 9, warning=FALSE, cache=TRUE}
+#Data processing for pace calculation along various 5k segments
+library(dplyr)
+segment_5k_times <- results %>%
+    mutate(segment_5k = X5k, segment_10k = X10k - X5k, segment_15k = X15k-X10k, segment_20k = X20k-X15k, segment_25k = X25k-X20k, segment_30k = X30k-X25k, segment_35k=X35k-X30k, segment_40k = X40k-X35k) %>%
+    gather(km_segment, time, segment_5k:segment_40k) %>%
+    mutate(km_segment = as.factor(as.numeric(gsub("k", "", gsub("segment_", "", km_segment))))) %>%
+    subset(select = -c(name, age, bib_number, city, origin, X5k:division_place, sec_half))
+
+ggplot(filter(segment_5k_times, age_group <= "45-49"), aes(x = km_segment, y = time)) + geom_jitter(colour = "dodgerblue", alpha = 0.3)+ geom_boxplot(fill = "white", width = 0.2, outlier.shape = NA) + facet_grid(age_group ~ gender) + xlab("5k segment") + ylab("Segment Time") + scale_y_continuous(limits = c(900, 2700), breaks = c(1200,  1800,  2400), labels = c("20:00", "30:00", "40:00")) + ggtitle("Performance over 5k race segments by gender and age group\n2015 Boston Marathon")
+
+ggplot(filter(segment_5k_times, age_group > "45-49"), aes(x = km_segment, y = time)) + geom_jitter(colour = "dodgerblue", alpha = 0.3)+ geom_boxplot(fill = "white", width = 0.2, outlier.shape = NA) + facet_grid(age_group ~ gender) + xlab("5k segment") + ylab("Segment Time") + scale_y_continuous(limits = c(900, 2700), breaks = c(1200,  1800,  2400), labels = c("20:00", "30:00", "40:00")) + ggtitle("Performance over 5k race segments by gender and age group\n2015 Boston Marathon")
+    
+```
+
+##4. How do the elites run the race?
+*Note: This replaced the question "Who doesn't finish the race", as noted above, because non-finishers are not included in the race results posted online, and therefore I was not able to obtain this data or analyze the results. Additionally, while this is still an interesting question, this is actually one of the only things the Boston Marathon officially publishes statistics on, [available here](http://registration.baa.org/2015/cf/Public/iframe_Statistics.htm).
+Additionally, note that the definition of "elite" runners varies considerably and there is no simple way to distinguish between high-performing "elite" runners and other runners who may still have low bib numbers (indicating a low pre-race seed), because some runners such as past champions (even champions from races decades ago) are often given elite bib numbers. In order to identify the subset used as "elite" here, I simply took the top 50 finishers from each gender (elite runners are not categorized by age group; they are typically only separated into gender divisions).
+####Specifically, how do the elite runners perform across the course? How does this compare to non-elites?
+
+One thing that is immediately clear from examining the performance of the elite runners in the plot below is the difference between how the female and male races played out. Commonly, elite runners form a "lead pack," a small group of front-runners that run in a tight group. This happens for several strategic reasons (runners want to stay very close to their competitors to ensure none takes too great a lead early in the race; runners achieve physical benefits by "drafting" off of others and reducing wind resistance, which is non-trivial when traveling at the 12-miles-per-hour pace the lead runners sometimes achieve). This clearly happened in the women's race, where there is a clear differentiation between a set of nearly a dozen runners who form almost a perfect straight, black line across every segment of the course (until the final 5k, when runners "pushed the pace" and went all-out for a victory, leading some to break away and many others to fall behind). The men's race, in contrast,  never formed as clear of a pack, and during the small segments of the race in which they did, the pack was smaller and much less well-defined.
+
+I also mentioned above that there is a clear pattern in elite running in the final 5k segment of the race that runs contrary to the performance of other runners: they run the final segment **much** faster than the previous one (while we mentioned that some runners improve in the final 5k, many others slow down, and on average there is only a slight improvement). As both the jitter plot and the accompanying bowplot for elite runners show, elite runners tend to go all-out in the final 5k segment of the course, where a select few are able to maintain their pace and achieve one of the top spots, but others cannot keep up and fall behind.
+
+This plot in particular demonstrates the usefulness of the jitter plot, where we can see several points simultaneously despite them having equivalent x- and y-values--this is what makes the "packs" visible as more than just a single, dark dot here.
+
+
+```{r, warning=FALSE, fig.width=9, fig.height = 5.5, echo=FALSE, cache=TRUE}
+ggplot(filter(segment_5k_times, age_group <= "45-49"), aes(x = km_segment, y = time, col = elite)) + geom_jitter(alpha = 0.3) + scale_colour_manual(values=c("black", "dodgerblue")) + geom_boxplot(fill = "white", width = 0.2, outlier.shape = NA) + facet_grid(gender ~ .) + xlab("5k segment") + ylab("Segment Time") + scale_y_continuous(limits = c(900, 2700), breaks = c(1200,  1800,  2400), labels = c("20:00", "30:00", "40:00")) + ggtitle("Performance over 5k race segments by gender for Elite and Non-Elite Runners (Age < 50)\n2015 Boston Marathon")
+
+ggplot(half_times, aes(x = half, y = time, col = elite)) + geom_jitter(alpha = 0.5) + geom_boxplot(width = 0.2, fill="white", outlier.shape = NA, lwd = 1) + scale_colour_manual(values=c("black", "dodgerblue")) + ggtitle("Runner Performance on First and Second Halves of Course\n2015 Boston Marathon") + scale_y_continuous(breaks=c(3600, 7200, 10800, 14400), labels=c("1:00:00","2:00:00", "3:00:00", "4:00:00"))
+
+```
+
+
+#Appendix: Extra Plots and Exploratory Analysis
+
+#### How is pace related to age group?
+```{r, cache=TRUE}
+ggplot(results[results$age_group!="NA",], aes(x=age_group, y=pace)) + geom_violin()
+```
+
+####How is bib number (= rank based on qualifying time) related to overall performance? Do runners with faster qualifying times place higher?
+```{r, cache=TRUE}
+#note: these are interesting graphs but need a little more wrangling to come out right!
+plot(as.numeric(results$bib_number), as.numeric(results$overall_place), col = "dodgerblue", main = "Bib Number vs. Finish Place")
+abline(0, 1, col = "gold", lwd = 4)
+
+#note: takes a long time to generate these plots; excluded here
+
+#ggplot(results, aes(x = bib_number, y = overall_place)) + geom_point()
+#ggplot(results, aes(x = bib_number, y = overall_place)) + stat_binhex()
+```
