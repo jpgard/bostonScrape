@@ -9,6 +9,13 @@ shinyUI(pageWithSidebar(
         sliderInput("bib_number", label = "Bib Number", min = 1, max = 40000, value = 1, step = 1)
     ),
     mainPanel(
-        h3('Boston Marathon Results Explorer')
-        p('Enter Your ')
+        h1('Boston Marathon Results Explorer'),
+        p('Data dislay below'),
+        h3('You Entered:'),
+        p('Gender:'),
+        verbatimTextOutput("oid1"),
+        p('Age Group:'),
+        verbatimTextOutput("oid2"),
+        p('Bib Number:'),
+        verbatimTextOutput("oid3")
     ) ))
