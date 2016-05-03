@@ -17,5 +17,6 @@ shinyUI(pageWithSidebar(
         p('Age Group:'),
         verbatimTextOutput("oid2"),
         p('Bib Number:'),
-        verbatimTextOutput("oid3")
+        verbatimTextOutput("oid3"),
+        plotOutput('testplot')
     ) ))
