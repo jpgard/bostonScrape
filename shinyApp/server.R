@@ -35,6 +35,12 @@ results <- results %>%
     na.omit() %>%
     unique()
 
+segment_5k_times <- results %>%
+    mutate(segment_5k = X5k, segment_10k = X10k - X5k, segment_15k = X15k-X10k, segment_20k = X20k-X15k, segment_25k = X25k-X20k, segment_30k = X30k-X25k, segment_35k=X35k-X30k, segment_40k = X40k-X35k) %>%
+    gather(km_segment, time, segment_5k:segment_40k) %>%
+    mutate(km_segment = as.factor(as.numeric(gsub("k", "", gsub("segment_", "", km_segment))))) %>%
+    subset(select = -c(name, age, city, origin, X5k:division_place, sec_half))
+
 #test - remove after testing
 countrycounts = data.frame(table(results$county))
 names(countrycounts) <- c("Country", "Entrants")
@@ -47,9 +53,14 @@ shinyServer(
         output$oid2 = renderPrint({input$agegroup})
         output$oid3 = renderPrint({input$bib_number})
         output$testplot = renderPlot({
-            ggplot(countrycounts[1:10,], aes(x = reorder(Country, -Entrants), y = Entrants)
-                   ) + geom_bar(stat="identity") + xlab("Country") + ggtitle("Top 10 Countries By Official Finisher Counts\n2015 Boston Marathon"
-                   ) + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+            ggplot(filter(segment_5k_times, age_group == input$agegroup, gender == input$gender), aes(x = km_segment, y = time
+            )) + geom_jitter(colour = "dodgerblue", alpha = 0.3)+ geom_boxplot(
+                fill = "white", width = 0.2, outlier.shape = NA) + facet_grid(age_group ~ gender
+                ) + xlab("5k segment") + ylab("Segment Time") + scale_y_continuous(
+                limits = c(900, 2700), breaks = c(1200,  1800,  2400), labels = c(
+                "20:00", "30:00", "40:00")) + ggtitle(
+                "Performance over 5k race segments for your gender and age group\n2016 Boston Marathon"
+                ) + geom_hline(aes(x = km_segment, yintercept = time), data = filter(segment_5k_times, bib_number == input$bib_number), size=2, colour = "gold")
         })
         
         #position in overall results
