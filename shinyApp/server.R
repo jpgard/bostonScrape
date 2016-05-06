@@ -56,7 +56,7 @@ shinyServer(
             xage_group = results[results$bib_number==input$bib_number,'age_group']
             xgender = results[results$gender==input$gender,'gender']
             xbib_number = input$bib_number
-            
+            #plot of 5k segment times relative to avg in age group/gender, and overall avg
             ggplot(filter(segment_5k_times, age_group == xage_group, gender == xgender), aes(x = km_segment, y = time
             )) + geom_jitter(colour = "dodgerblue", alpha = 0.3)+ geom_boxplot(
                 fill = "white", width = 0.2, outlier.shape = NA) + facet_grid(. ~ km_segment, scales="free_x"
@@ -68,8 +68,10 @@ shinyServer(
         })
         
         #position in overall results
+        output$overall_place = results[results$bib_number==input$bib_number,'overall_place']
         #position in age group/gender
+        output$gender_place = results[results$bib_number==input$bib_number,'gender_place']
+        output$age_place = results[results$bib_number==input$bib_number,'division_place']
         #position in city/state/country
-        #plot of 5k segment times relative to avg in age group/gender, and overall avg
         
     } )
