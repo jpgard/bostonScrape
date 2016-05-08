@@ -86,7 +86,7 @@ shinyServer(
             ggplot(df, aes(x = bin, y = freq, fill = color)) + geom_bar(stat = "identity"
                 ) + scale_fill_manual(values = c("dodgerblue","gold")
                 ) + ggtitle("Your Performance Relative To All Finishers"
-                ) + theme(legend.position="none", axis.title.x=element_blank(), axis.text.x = element_blank())
+                ) + theme(legend.position="none", axis.title.x=element_blank(), axis.text.x = element_blank(), axis.ticks = element_blank())
         })
         
         #histogram of finish time relative to division (gender + age group)
@@ -103,7 +103,7 @@ shinyServer(
             ggplot(df, aes(x = bin, y = freq, fill = color)) + geom_bar(stat = "identity"
             ) + scale_fill_manual(values = c("dodgerblue","gold")
             ) + ggtitle("Your Performance Within Your Division (Gender + Age Group)"
-            ) + theme(legend.position="none", axis.title.x=element_blank(), axis.text.x = element_blank())
+            ) + theme(legend.position="none", axis.title.x=element_blank(), axis.text.x = element_blank(), axis.ticks = element_blank())
         })
        
         
