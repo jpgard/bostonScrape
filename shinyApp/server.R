@@ -76,8 +76,9 @@ shinyServer(
             df = data.frame(table(plotsub$bin))
             names(df) <- c("bin", "freq")
             xbin = plotsub[plotsub$bib_number == xbib_number,'bin']
-            df$color = ifelse(df$bin == xbin, 1, 0)
+            df$color = factor(ifelse(df$bin == xbin, 1, 0))
             ggplot(df, aes(x = bin, y = freq, fill = color)) + geom_bar(stat = "identity"
+                ) + scale_fill_manual(values = c("dodgerblue","gold")
                 ) + ggtitle("Your Performance Relative To All Finishers"
                 ) + theme(legend.position="none", axis.title.x=element_blank(), axis.text.x = element_blank())
         })
