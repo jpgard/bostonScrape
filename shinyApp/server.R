@@ -69,6 +69,12 @@ shinyServer(
         
         #position in overall results
         output$overall_place = renderPrint(results[results$bib_number==input$bib_number,'overall_place'])
+        #position in age group/gender
+        output$gender_place = renderPrint(results[results$bib_number==input$bib_number,'gender_place'])
+        output$age_place = renderPrint(results[results$bib_number==input$bib_number,'division_place'])
+        #position in city/state/country
+        
+        #histogram of finish time relative to all finishers
         output$overallplot = renderPlot({
             xbib_number = input$bib_number
             plotsub = subset(results, select = c("bib_number", "official_time"))
@@ -82,9 +88,23 @@ shinyServer(
                 ) + ggtitle("Your Performance Relative To All Finishers"
                 ) + theme(legend.position="none", axis.title.x=element_blank(), axis.text.x = element_blank())
         })
-        #position in age group/gender
-        output$gender_place = renderPrint(results[results$bib_number==input$bib_number,'gender_place'])
-        output$age_place = renderPrint(results[results$bib_number==input$bib_number,'division_place'])
-        #position in city/state/country
+        
+        #histogram of finish time relative to division (gender + age group)
+        output$divisionplot = renderPlot({
+            xbib_number = input$bib_number
+            xage_group = results[results$bib_number==input$bib_number,'age_group']
+            xgender = results[results$bib_number==input$bib_number,'gender']
+            plotsub = subset(results, age_group == xage_group | gender == xgender, select = c("bib_number", "official_time"))
+            plotsub$bin = cut(plotsub$official_time, 30)
+            df = data.frame(table(plotsub$bin))
+            names(df) <- c("bin", "freq")
+            xbin = plotsub[plotsub$bib_number == xbib_number,'bin']
+            df$color = factor(ifelse(df$bin == xbin, 1, 0))
+            ggplot(df, aes(x = bin, y = freq, fill = color)) + geom_bar(stat = "identity"
+            ) + scale_fill_manual(values = c("dodgerblue","gold")
+            ) + ggtitle("Your Performance Within Your Division (Gender + Age Group)"
+            ) + theme(legend.position="none", axis.title.x=element_blank(), axis.text.x = element_blank())
+        })
+       
         
     } )
