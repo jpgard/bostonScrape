@@ -11,6 +11,8 @@ shinyUI(pageWithSidebar(
     mainPanel(
         tabsetPanel(type = "tabs",
             tabPanel("Individual Results Explorer",
+                #this should only have bib number input
+                #note: PREPROCESS data and save output for use here. This will speed up performance tremendously...
                 h1('Boston Marathon Results Explorer'),
                 p('Data dislay below'),
                 h3('You Entered:'),
@@ -27,6 +29,8 @@ shinyUI(pageWithSidebar(
                 h3('Your Performance on 5k Course Segments:'),
                 plotOutput('testplot')),
             tabPanel("5k Segment Explorer"
+                     #include image of elevation from baa document
+                     #needs its own control panel with more selections
                     )
         )
     ) ))
