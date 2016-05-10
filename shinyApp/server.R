@@ -19,7 +19,7 @@ shinyServer(
         output$oid1 = renderPrint({input$gender})
         output$oid2 = renderPrint({input$agegroup})
         output$oid3 = renderPrint({input$bib_number})
-        output$testplot = renderPlot({
+        output$ind_5k_plot = renderPlot({
             xage_group = results[results$bib_number==input$bib_number,'age_group']
             xgender = results[results$gender==input$gender,'gender']
             xbib_number = input$bib_number
@@ -32,6 +32,21 @@ shinyServer(
                 "20:00", "30:00", "40:00")) + ggtitle(
                 "Performance over 5k race segments for your gender and age group\n2016 Boston Marathon"
                 ) + geom_hline(aes(yintercept = time), data = filter(segment_5k_times, bib_number == xbib_number), size=2, colour = "gold")
+        })
+        
+        output$explore_5k_plot = renderPlot({
+            xage_group = input$agegroup
+            xgender = input$gender
+            xbib_range = input$bib_range
+            #plot of 5k segment times relative to avg in age group/gender, and overall avg
+            ggplot(filter(segment_5k_times, age_group == xage_group, gender == xgender), aes(x = km_segment, y = time
+            )) + geom_jitter(colour = "dodgerblue", alpha = 0.3)+ geom_boxplot(
+                fill = "white", width = 0.2, outlier.shape = NA) + facet_grid(. ~ km_segment, scales="free_x"
+                ) + xlab("5k segment") + ylab("Segment Time") + scale_y_continuous(
+                    limits = c(900, 2700), breaks = c(1200,  1800,  2400), labels = c(
+                        "20:00", "30:00", "40:00")) + ggtitle(
+                            "Performance over 5k race segments for your gender and age group\n2016 Boston Marathon"
+                        ) + geom_hline(aes(yintercept = time), data = filter(segment_5k_times, bib_number == xbib_number), size=2, colour = "gold")
         })
         
         #position in overall results

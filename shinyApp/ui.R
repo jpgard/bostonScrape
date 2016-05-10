@@ -2,17 +2,26 @@ library(shiny)
 shinyUI(pageWithSidebar(
     headerPanel("Hello Shiny!"),
     sidebarPanel(
+        conditionalPanel(condition="input.conditionedPanels==1",
+                         helpText('Enter your bib number to explore your individual results.'),
+                         numericInput("bib_number", label = "Bib Number", min = 1, max = 40000, value = 1, step = 1)
+        ),
+        conditionalPanel(condition="input.conditionedPanels==2",
+                         helpText('Enter your information here to explore your results.'),
         h3('Control Panel'), 
-        p('Enter your information here to explore your results.'),
-        selectInput("gender", label = "Gender", c("Male" = "M", "Female" = "F")),
-        selectInput("agegroup", label = "Age Group", c("18-34", "35-39", "40-44", "45-49", "50-54", "60-64", "65-69", "70-74", "75-79", "80+")),
-        numericInput("bib_number", label = "Bib Number", min = 1, max = 40000, value = 1, step = 1), width = 3
+        p('Use the selectors below to explore the 5k segment performance of various groups.'),
+        selectInput("gender", label = "Gender", c("Male" = "M", "Female" = "F"), selected = NULL),
+        selectInput("agegroup", label = "Age Group", 
+                    c("18-34", "35-39", "40-44", "45-49", "50-54", "60-64", "65-69", "70-74", "75-79", "80+"
+                      ), selected = NULL), 
+        sliderInput("bib_range", "Bib Number Range", 1, 36000, c(1, 36000)),
+        width = 3
+        
+    )
     ),
     mainPanel(
         tabsetPanel(type = "tabs",
-            tabPanel("Individual Results Explorer",
-                #this should only have bib number input
-                #note: PREPROCESS data and save output for use here. This will speed up performance tremendously...
+            tabPanel("Individual Results Explorer", value=1,
                 h1('Boston Marathon Results Explorer'),
                 p('Data dislay below'),
                 h3('You Entered:'),
@@ -27,10 +36,11 @@ shinyUI(pageWithSidebar(
                 h3('Your Results Within Age/Gender Division:'),
                 plotOutput('divisionplot'),
                 h3('Your Performance on 5k Course Segments:'),
-                plotOutput('testplot')),
-            tabPanel("5k Segment Explorer"
+                plotOutput('ind_5k_plot')),
+            tabPanel("5k Segment Explorer", value=2,
+                plotOutput('5k_explore_plot')),
                      #include image of elevation from baa document
                      #needs its own control panel with more selections
-                    )
+            id = "conditionedPanels"
         )
     ) ))
