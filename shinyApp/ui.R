@@ -51,7 +51,7 @@ shinyUI(pageWithSidebar(
             tabPanel("5k Segment Explorer", value=2,
                 verbatimTextOutput("bib_range"),
                 plotOutput('explore_5k_plot'),
-                img(src="coursemap_2016.jpg",width =1000)),
+                img(src="coursemap_2016.jpg",width =1000, align = "center")),
                 
                      #include image of elevation from baa document
                      #needs its own control panel with more selections
