@@ -14,6 +14,17 @@ shinyUI(pageWithSidebar(
         selectInput("agegroup", label = "Age Group", 
                     c("18-34", "35-39", "40-44", "45-49", "50-54", "60-64", "65-69", "70-74", "75-79", "80+"
                       ), selected = NULL), 
+        selectInput("country", label = "Country", c( "AHO", "ALB", "AND", "ARG", "AUS", "AUT", "BAH", "BEL", 
+                                                     "BER", "BLR", "BRA", "CAN", "CAY", "CHI", "CHN", "COL", 
+                                                     "CRC", "CRO", "CYP", "CZE", "DEN", "DOM", "ECU", "ESA", 
+                                                     "ESP", "EST", "ETH", "FIN", "FRA", "GBR", "GER", "GRE", 
+                                                     "GUA", "HKG", "HON", "HUN", "INA", "IND", "IRL", "ISL", 
+                                                     "ISR", "ITA", "JAM", "JOR", "JPN", "KEN", "KOR", "LAT", 
+                                                     "LIE", "LTU", "LUX", "MAR", "MAS", "MEX", "NED", "NOR", 
+                                                     "NZL", "OMA", "PAK", "PAN", "PER", "PHI", "POL", "POR", 
+                                                     "QAT", "ROU", "RSA", "RUS", "SIN", "SUI", "SVK", "SWE", 
+                                                     "TRI", "TUR", "UAE", "UGA", "UKR", "URU", "USA", "VEN", 
+                                                     "VGB", "VIE"), selected = "USA"),
         sliderInput("bib_range", "Bib Number Range", 1, 36000, c(1, 36000)),
         width = 3
         
@@ -38,7 +49,10 @@ shinyUI(pageWithSidebar(
                 h3('Your Performance on 5k Course Segments:'),
                 plotOutput('ind_5k_plot')),
             tabPanel("5k Segment Explorer", value=2,
-                plotOutput('5k_explore_plot')),
+                verbatimTextOutput("bib_range"),
+                plotOutput('explore_5k_plot'),
+                img(src="coursemap_2016.jpg",width =1000)),
+                
                      #include image of elevation from baa document
                      #needs its own control panel with more selections
             id = "conditionedPanels"
